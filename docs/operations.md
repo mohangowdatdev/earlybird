@@ -90,4 +90,4 @@ The whole dataset is flagged **stale** when `health.json.generated_at` is more t
 | Stale-dataset banner | `gh run list -w ingest.yml`. Was it disabled or did it fail? Re-run with `gh workflow run ingest.yml`. |
 | A source shows 0 jobs | Run `earlybird ingest --source <name> --company <slug> --dry-run -v` and diff the payload against the fixture. |
 | Email jobs missing | Check the IMAP login (app password revoked?), the label name, and `earlybird email --dry-run -v`. |
-| Push rejected for workflow files | The token lacks the `workflow` scope: `gh auth refresh -h github.com -u mohangowdatdev -s workflow` |
+| Push rejected for workflow files | The token lacks the `workflow` scope: `gh auth switch -u mohangowdatdev && gh auth refresh -h github.com -s workflow; gh auth switch -u mohangowdat-sail` (gh only refreshes the active account) |

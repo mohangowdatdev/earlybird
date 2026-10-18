@@ -102,7 +102,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 These need Mohan; Claude asks for them in batches when they come up.
 
 - [x] `gh` logged in as `mohangowdatdev`
-- [ ] Add the `workflow` scope to the `mohangowdatdev` token: `gh auth refresh -h github.com -u mohangowdatdev -s workflow` (needed to push `.github/workflows/`)
+- [ ] Add the `workflow` scope to the `mohangowdatdev` token: `gh auth switch -u mohangowdatdev && gh auth refresh -h github.com -s workflow; gh auth switch -u mohangowdat-sail` (gh only refreshes the active account) (needed to push `.github/workflows/`)
 - [ ] Profile and seed company list
 - [ ] A Gmail app password, plus the `earlybird` label and filter (Phase 2)
 - [ ] Job alerts on LinkedIn, Naukri, Wellfound and, optionally, Instahyre, Cutshort, Hirist and Otta / Welcome to the Jungle, all delivered to that label (Phase 2)

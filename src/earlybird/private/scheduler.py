@@ -5,6 +5,7 @@ import asyncio
 from datetime import UTC, datetime
 
 import structlog
+from pydantic import ValidationError
 
 from earlybird.core.config import Settings
 from earlybird.core.errors import EarlybirdError
@@ -43,7 +44,11 @@ async def run_forever(settings: Settings) -> None:
             visibility=Visibility.PRIVATE,
             settings=settings,
         )
-        profile = load_profile(settings.profile_path)
+        try:
+            profile = load_profile(settings.profile_path)
+        except ValidationError as exc:
+            log.warning("scheduler.profile_invalid", error=str(exc)[:300])
+            profile = None
         if profile is not None:
             await score_pending(engine, profile, settings, datetime.now(UTC))
         await asyncio.sleep(settings.sync_interval_minutes * 60)

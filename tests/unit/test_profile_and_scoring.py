@@ -64,9 +64,13 @@ def test_at_most_two_domains() -> None:
 
 def test_old_profile_files_still_load(tmp_path: Path) -> None:
     path = tmp_path / "profile.yaml"
-    path.write_text("yoe: 6\nremote_types: [remote_india_ok]\ncities: [bangalore]\n")
+    path.write_text(
+        "yoe: 6\nremote_types: [remote_india_ok]\ncities: [bangalore]\n"
+        "seniorities: [senior, staff_plus, executive]\n"
+    )
     loaded = load_profile(path)
     assert loaded is not None and loaded.cities == ["Bengaluru"]
+    assert loaded.seniorities == [Seniority.SENIOR, Seniority.STAFF_PRINCIPAL, Seniority.DIRECTOR]
 
 
 def test_great_match_is_strong_without_ai() -> None:

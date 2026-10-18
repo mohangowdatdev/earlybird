@@ -54,6 +54,13 @@ class Profile(BaseModel):
     min_salary_usd: int | None = Field(default=None, ge=0)
     chirp_daily_cap: int = Field(default=5, ge=0, le=50)
 
+    @field_validator("seniorities", mode="before")
+    @classmethod
+    def _legacy_levels(cls, values: list[str]) -> list[str]:
+        """Profiles saved before the 8-level scale used staff_plus / executive."""
+        legacy = {"staff_plus": "staff_principal", "executive": "director"}
+        return [legacy.get(v, v) for v in values or []]
+
     @field_validator("domains")
     @classmethod
     def _in_scope(cls, values: list[Domain]) -> list[Domain]:

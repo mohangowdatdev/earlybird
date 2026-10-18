@@ -87,6 +87,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 | [0012](docs/decisions/0012-zero-cost-operation.md) | Zero-cost operation | Accepted |
 | [0013](docs/decisions/0013-privacy-boundary-import-linter.md) | The privacy boundary is enforced in code | Accepted |
 | [0014](docs/decisions/0014-portable-private-plane.md) | Private plane portable via config/env; hosting candidates for later | Accepted |
+| [0016](docs/decisions/0016-small-local-model-extraction.md) | Small local model (Ollama, Qwen2.5 3B) refines descriptions, grounded and fail-open | Accepted |
 | [0015](docs/decisions/0015-terms-restricted-sources-and-descriptions.md) | Terms-restricted boards (Himalayas, Remotive) run privately; descriptions never published | Accepted (Mohan to confirm) |
 
 ## Open questions
@@ -113,6 +114,10 @@ These need Mohan; Claude asks for them in batches when they come up.
 ## Decision log
 
 Newest first. Each entry is one line; link the ADR where there is one.
+
+- **2026-10-19:** Perch became "Dream companies": only *relevant* roles there are promoted (full role match, or partial match plus a must-have skill); hard excludes still apply. This refines ADR 0006's "bypass scoring entirely", which flooded Dawn (Cloudflare: 434 → 32).
+- **2026-10-19:** A small local model (qwen2.5:3b via Ollama) refines unclear jobs from their descriptions, grounded and fail-open. 1.5B was rejected after a benchmark ([0016](docs/decisions/0016-small-local-model-extraction.md)).
+- **2026-10-19:** Skills taxonomy rebuilt: 182 skills in 18 categories (cloud services, lakehouse, AI/LLM, MLOps…), cloud implications, and alias-aware profile matching. `EXTRACTOR_VERSION` re-tags existing jobs.
 
 - **2026-10-18:** The portal was redesigned (Mohan: "the UI sucks"): a yellow design system, light and dark themes, adaptive layouts, Overview/Dawn/Nest/Explore/Sources/Profile, a live profile preview, a drag-and-drop Nest, and keyboard triage with undo ([portal.md](docs/portal.md)).
 

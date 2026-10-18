@@ -18,7 +18,7 @@ from earlybird.core.models import RemoteType, Seniority
 from earlybird.core.registry import load_registry
 from earlybird.db.engine import make_engine, upgrade
 from earlybird.db.schema import tracker
-from earlybird.enrich.rules import remote_label, stack_tags
+from earlybird.enrich.rules import remote_label, stack_catalog
 from earlybird.health.report import HealthReport, build_report
 from earlybird.portal import queries
 from earlybird.private.profile import Profile, load_profile, save_profile
@@ -162,7 +162,7 @@ def _profile_data(form: Any) -> dict[str, Any]:
         "cities": _split(text("cities")),
         "seniorities": form.getlist("seniorities"),
         "exclude_title_patterns": _split(text("exclude_title_patterns")),
-        "watchlist": _split(text("watchlist")),
+        "watchlist": [slug for v in form.getlist("watchlist") for slug in _split(str(v))],
         "min_salary_usd": text("min_salary_usd") or None,
         "chirp_daily_cap": text("chirp_daily_cap") or 5,
     }
@@ -334,7 +334,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             card = queries.job_detail(conn, job_id, profile_or_default())
         if card is None:
             return HTMLResponse("<div class='empty'>This job is gone.</div>", status_code=404)
-        return partial(request, "_detail.html", card=card)
+        profile = load_profile(settings.profile_path)
+        watching = profile is not None and card.job["company_slug"] in profile.watchlist
+        return partial(request, "_detail.html", card=card, watching=watching)
 
     @app.post("/triage")
     def triage(
@@ -433,7 +435,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     def profile_page(
         request: Request, profile: Profile, *, errors: list[str], saved: bool, welcome: bool
     ) -> HTMLResponse:
-        registry = load_registry(settings.registry_path) if settings.registry_path.exists() else []
+        with engine.connect() as conn:
+            directory = queries.company_directory(conn)
+        known = {c["company_slug"] for c in directory}
+        directory += [
+            {"company_slug": slug, "name": slug, "open_jobs": 0}
+            for slug in profile.watchlist
+            if slug not in known
+        ]
+        watched = set(profile.watchlist)
+        directory.sort(key=lambda c: (c["company_slug"] not in watched, -c["open_jobs"]))
         return render(
             request,
             "profile.html",
@@ -445,8 +456,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             remote_options=[(r, REMOTE_HELP[r], REMOTE_ICONS[r]) for r in RemoteType],
             seniorities=list(SENIORITY_LABELS.items()),
             role_suggestions=list(ROLE_SUGGESTIONS),
-            skill_suggestions=stack_tags(),
-            company_suggestions=[{"value": c.slug, "label": c.name} for c in registry],
+            skill_suggestions=stack_catalog(),
+            companies=directory,
         )
 
     @app.get("/profile", response_class=HTMLResponse)
@@ -483,6 +494,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                 conn, profile, now=current, window=max(window, PREVIEW_WINDOW), since=current
             )
         counts = {b.value: sum(c.score.bucket is b for c in cards) for b in Bucket}
+        counts["watchlist"] = sum(c.score.watchlist for c in cards)
         return partial(
             request,
             "_preview.html",
@@ -494,6 +506,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         )
 
     # ---------- actions & API ----------
+
+    @app.post("/profile/watch")
+    def watch_company(
+        company_slug: Annotated[str, Form()], watch: Annotated[bool, Form()]
+    ) -> JSONResponse:
+        profile = load_profile(settings.profile_path)
+        if profile is None:
+            return JSONResponse({"ok": False, "error": "create a profile first"}, status_code=409)
+        slugs = [s for s in profile.watchlist if s != company_slug]
+        if watch:
+            slugs.append(company_slug)
+        save_profile(profile.model_copy(update={"watchlist": slugs}), settings.profile_path)
+        return JSONResponse({"ok": True, "watching": watch, "count": len(slugs)})
 
     @app.post("/sync")
     async def sync_now() -> JSONResponse:

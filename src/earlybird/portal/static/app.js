@@ -161,12 +161,13 @@
       });
       renderQuick();
     };
+    const grouped = suggestions.some((s) => s.group);
     const matches = () => {
       const q = input.value.trim().toLowerCase();
-      return suggestions
-        .filter((s) => !has(s.value) && (!q || s.label.toLowerCase().includes(q) || s.value.toLowerCase().includes(q)))
-        .sort((a, b) => (q ? a.label.toLowerCase().indexOf(q) - b.label.toLowerCase().indexOf(q) : 0))
-        .slice(0, 8);
+      const found = suggestions.filter((s) => !has(s.value) && (!q || s.label.toLowerCase().includes(q) || s.value.toLowerCase().includes(q)));
+      if (!q) return grouped ? found : found.slice(0, 12);
+      const rank = (s) => (s.label.toLowerCase().startsWith(q) ? 0 : 1) + s.label.toLowerCase().indexOf(q) / 100;
+      return found.sort((a, b) => rank(a) - rank(b)).slice(0, 12);
     };
     const showMenu = () => {
       const items = matches();
@@ -174,7 +175,15 @@
       if (!items.length && !q) { hideMenu(); return; }
       hl = Math.min(hl, Math.max(items.length - 1, 0));
       menu.innerHTML = "";
+      let group = null;
       items.forEach((s, i) => {
+        if (!q && s.group && s.group !== group) {
+          group = s.group;
+          const h = document.createElement("div");
+          h.className = "suggest-group";
+          h.textContent = group;
+          menu.append(h);
+        }
         const b = document.createElement("button");
         b.type = "button";
         b.setAttribute("role", "option");
@@ -185,6 +194,7 @@
           ? `${escapeHtml(s.label.slice(0, idx))}<mark>${escapeHtml(s.label.slice(idx, idx + q.length))}</mark>${escapeHtml(s.label.slice(idx + q.length))}`
           : label;
         if (s.label !== s.value) b.insertAdjacentHTML("beforeend", `<small>${escapeHtml(s.value)}</small>`);
+        else if (q && s.group) b.insertAdjacentHTML("beforeend", `<small>${escapeHtml(s.group)}</small>`);
         b.onmousedown = (e) => { e.preventDefault(); add(s.value); input.value = ""; showMenu(); };
         menu.append(b);
       });
@@ -214,8 +224,8 @@
     });
     input.addEventListener("keydown", (e) => {
       const opts = $$("button", menu);
-      if (e.key === "ArrowDown" && opts.length) { e.preventDefault(); hl = (hl + 1) % opts.length; showMenu(); }
-      else if (e.key === "ArrowUp" && opts.length) { e.preventDefault(); hl = (hl - 1 + opts.length) % opts.length; showMenu(); }
+      if (e.key === "ArrowDown" && opts.length) { e.preventDefault(); hl = (hl + 1) % opts.length; showMenu(); $$("button", menu)[hl]?.scrollIntoView({ block: "nearest" }); }
+      else if (e.key === "ArrowUp" && opts.length) { e.preventDefault(); hl = (hl - 1 + opts.length) % opts.length; showMenu(); $$("button", menu)[hl]?.scrollIntoView({ block: "nearest" }); }
       else if (e.key === "Enter" || e.key === "Tab") {
         if (!menu.hidden && opts[hl]) { e.preventDefault(); opts[hl].dispatchEvent(new MouseEvent("mousedown")); }
         else if (input.value.trim()) { e.preventDefault(); add(input.value); input.value = ""; showMenu(); }
@@ -226,6 +236,37 @@
     render();
   };
   $$("[data-tags]").forEach(initTags);
+
+  /* ---------- dream companies (Perch) ---------- */
+  const perchSearch = $("[data-perch-search]");
+  if (perchSearch) {
+    const items = $$(".perch-item");
+    const count = $("[data-perch-count]");
+    const refresh = () => { count.textContent = `${items.filter((i) => $("input", i).checked).length} watched`; };
+    perchSearch.addEventListener("input", () => {
+      const q = perchSearch.value.trim().toLowerCase();
+      let shown = 0;
+      items.forEach((i) => { const hit = !q || i.dataset.name.includes(q); i.hidden = !hit; shown += hit; });
+      $(".perch-none").hidden = shown > 0;
+    });
+    items.forEach((i) => $("input", i).addEventListener("change", refresh));
+  }
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-watch]");
+    if (!btn) return;
+    const watch = btn.dataset.watching !== "true";
+    try {
+      const res = await post("/profile/watch", { company_slug: btn.dataset.watch, watch });
+      if (!res.ok) throw new Error(res.error);
+    } catch (err) {
+      toast(`Couldn't update dream companies${err.message ? `: ${err.message}` : ""}`, { error: true });
+      return;
+    }
+    btn.dataset.watching = String(watch);
+    btn.classList.toggle("primary", watch);
+    $("span", btn).textContent = watch ? "Watching" : "Watch company";
+    toast(watch ? `${btn.dataset.company} added to dream companies. Relevant roles there will go to the top.` : `${btn.dataset.company} removed from dream companies`);
+  });
 
   /* ---------- range + steppers ---------- */
   const syncRange = (r) => {

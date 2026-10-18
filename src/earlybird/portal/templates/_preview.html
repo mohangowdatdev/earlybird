@@ -8,6 +8,7 @@
   <div class="maybe"><b>{{ counts.maybe }}</b><span>Maybe</span></div>
   <div class="excluded"><b>{{ counts.excluded }}</b><span>Excluded</span></div>
 </div>
+{% if counts.watchlist %}<p class="chip brand" style="margin-bottom:12px">{{ ic.icon("star") }} {{ counts.watchlist }} relevant role{{ "s" if counts.watchlist != 1 }} at your dream companies</p>{% endif %}
 {% if top %}
 <div class="preview-top">
 <div class="section-title">Top of your Dawn</div>

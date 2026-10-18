@@ -41,7 +41,7 @@
       <div class="stack" style="gap:18px">
         <div class="field">
           <label for="must-input">Must-have</label>
-          <div class="tags" data-tags data-input-id="must-input" data-placeholder="Search skills: python, spark, sql…" data-suggest='{{ skill_suggestions | tojson }}'>
+          <div class="tags" data-tags data-input-id="must-input" data-placeholder="Search skills: python, spark, sql…" data-quick="12" data-suggest='{{ skill_suggestions | tojson }}'>
             <input type="hidden" name="skills_must" value="{{ profile.skills_must | join(', ') }}">
           </div>
         </div>
@@ -92,9 +92,22 @@
     </section>
 
     <section class="card psec" id="perch">
-      <div class="psec-head"><span class="num">7</span><div><h3>Perch watchlist</h3><p>Dream companies. Their jobs always reach you, unscored and marked with a star.</p></div></div>
-      <div class="tags" data-tags data-free="false" data-input-id="perch-input" data-placeholder="Search {{ company_suggestions | length }} tracked companies…" data-suggest='{{ company_suggestions | tojson }}'>
-        <input type="hidden" name="watchlist" value="{{ profile.watchlist | join(', ') }}">
+      <div class="psec-head"><span class="num">7</span><div><h3>Dream companies <span class="chip brand" style="vertical-align:2px">Perch</span></h3>
+        <p>Companies you'd drop everything for. Any role there that matches one of your roles or skills goes straight to the top of Dawn as <b>★ strong</b>, so you never miss it. Off-topic roles (sales, legal…) at those companies still stay out.</p></div></div>
+      <div class="perch-tools">
+        <div class="input-icon" style="flex:1">{{ ic.icon("search", "i sm") }}<input class="input sm" placeholder="Search {{ companies | length }} companies with open jobs…" data-perch-search></div>
+        <span class="chip brand" data-perch-count>{{ profile.watchlist | length }} watched</span>
+      </div>
+      <div class="perch-grid">
+        {% for c in companies %}
+        <label class="perch-item" data-name="{{ (c.name ~ ' ' ~ c.company_slug) | lower }}">
+          <input type="checkbox" name="watchlist" value="{{ c.company_slug }}" {{ 'checked' if c.company_slug in profile.watchlist }}>
+          {{ ic.logo(c.name) }}
+          <span class="pi-text"><b>{{ c.name }}</b><small>{{ c.open_jobs }} open job{{ "s" if c.open_jobs != 1 }}</small></span>
+          <span class="pi-star">{{ ic.icon("star") }}</span>
+        </label>
+        {% else %}<p class="muted">No companies yet. Sync the dataset first.</p>{% endfor %}
+        <p class="muted perch-none" hidden>No company matches that search.</p>
       </div>
     </section>
 
@@ -135,7 +148,7 @@
     </section>
     <nav class="card card-pad hide-sm" style="padding:14px" aria-label="Profile sections">
       <div class="stack" style="gap:2px;font-size:13px">
-        {% for anchor, label in [("about","About you"),("roles","Roles"),("skills","Skills"),("where","Where you'll work"),("level","Seniority"),("filters","Hard excludes"),("perch","Perch watchlist"),("alerts","Salary and alerts")] %}
+        {% for anchor, label in [("about","About you"),("roles","Roles"),("skills","Skills"),("where","Where you'll work"),("level","Seniority"),("filters","Hard excludes"),("perch","Dream companies"),("alerts","Salary and alerts")] %}
         <a class="btn ghost sm" style="justify-content:flex-start" href="#{{ anchor }}">{{ label }}</a>
         {% endfor %}
       </div>

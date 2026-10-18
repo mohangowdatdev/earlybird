@@ -58,10 +58,23 @@ def test_hard_exclude_records_reason() -> None:
     assert score.excluded_reason == "title:intern"
 
 
-def test_watchlist_bypasses_everything() -> None:
-    score = score_job(row(company_slug="perchco", title="Data Engineering Intern"), PROFILE)
-    assert score.bucket is Bucket.STRONG
-    assert score.watchlist
+def test_watchlist_promotes_relevant_jobs_only() -> None:
+    weak = row(company_slug="perchco", stack=["python"], yoe_min=15, yoe_max=20,
+               remote_type="remote_restricted")  # fmt: skip
+    loose = row(company_slug="perchco", title="Software Engineer, Platform", stack=["go"])
+    assert not score_job(loose, PROFILE).watchlist  # one shared word is not relevance
+    promoted = score_job(weak, PROFILE)
+    assert promoted.bucket is Bucket.STRONG and promoted.watchlist
+    off_topic = score_job(row(company_slug="perchco", title="Account Executive", stack=[]), PROFILE)
+    assert off_topic.bucket is Bucket.EXCLUDED and not off_topic.watchlist
+    intern = score_job(row(company_slug="perchco", title="Data Engineering Intern"), PROFILE)
+    assert intern.bucket is Bucket.EXCLUDED
+
+
+def test_skill_aliases_match_canonical_tags() -> None:
+    aliased = PROFILE.model_copy(update={"skills_must": ["pyspark", "postgres"]})
+    score = score_job(row(stack=["spark", "postgresql"]), aliased)
+    assert score.skill_hits == ["pyspark", "postgres"]
 
 
 def test_unknowns_fail_open_to_maybe() -> None:
@@ -87,3 +100,8 @@ def test_restricted_remote_scores_lower_than_india_ok() -> None:
     india = score_job(row(), PROFILE).value
     us_only = score_job(row(remote_type="remote_restricted", locations=["Remote - US"]), PROFILE)
     assert us_only.value < india
+
+
+def test_false_friend_titles_do_not_match_roles() -> None:
+    score = score_job(row(title="Data Center Engineer", stack=[]), PROFILE)
+    assert score.parts["role"] < 1

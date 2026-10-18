@@ -57,6 +57,7 @@ jobs = Table(
     Column("salary_period", String(16)),
     Column("summary", String(300), nullable=False),
     Column("extraction_method", String(10), nullable=False),
+    Column("extractor_version", Integer),
     Column("visibility", String(10), nullable=False),
     Column("first_seen_at", UTCDateTime, nullable=False, index=True),
     Column("last_seen_at", UTCDateTime, nullable=False),

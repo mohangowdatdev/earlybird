@@ -9,6 +9,7 @@ from earlybird.core.config import Settings
 from earlybird.core.errors import EarlybirdError
 from earlybird.core.models import Visibility
 from earlybird.db.engine import make_engine, upgrade
+from earlybird.ingest import make_refiner
 from earlybird.ingest import run as ingest
 from earlybird.private.sync import sync
 
@@ -38,5 +39,6 @@ async def run_forever(settings: Settings) -> None:
             timeout=settings.http_timeout_seconds,
             concurrency=4,
             visibility=Visibility.PRIVATE,
+            refiner=await make_refiner(settings),
         )
         await asyncio.sleep(settings.sync_interval_minutes * 60)

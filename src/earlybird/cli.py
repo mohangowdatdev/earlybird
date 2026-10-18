@@ -69,7 +69,7 @@ def ingest(
     ] = False,
 ) -> None:
     """Fetch sources and update the state. Default: the public plane (what Actions runs)."""
-    from earlybird.ingest import run  # noqa: PLC0415 - keep CLI startup light
+    from earlybird.ingest import SourceStats, make_refiner, run  # noqa: PLC0415 - light startup
 
     settings = get_settings()
     url = _db_url(db)
@@ -80,8 +80,9 @@ def ingest(
     unknown = set(source or []) - set(ALL_SOURCES)
     if unknown:
         raise typer.BadParameter(f"unknown source(s): {', '.join(sorted(unknown))}")
-    stats = asyncio.run(
-        run(
+
+    async def _go() -> list[SourceStats]:
+        return await run(
             make_engine(url),
             companies,
             sources=set(source) if source else None,
@@ -89,8 +90,10 @@ def ingest(
             timeout=settings.http_timeout_seconds,
             concurrency=settings.http_concurrency,
             visibility=Visibility.PRIVATE if private else Visibility.PUBLIC,
+            refiner=await make_refiner(settings),
         )
-    )
+
+    stats = asyncio.run(_go())
     for s in stats:
         typer.echo(
             f"{s.source:16} {s.status:8} companies={s.companies_total:<4} "

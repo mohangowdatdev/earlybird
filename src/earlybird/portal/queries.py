@@ -235,6 +235,21 @@ def source_history(conn: Connection, runs: int = 24) -> dict[str, list[dict[str,
     return {source: list(reversed(items)) for source, items in history.items()}
 
 
+def company_directory(conn: Connection) -> list[dict[str, Any]]:
+    """Every company with open jobs (any source), busiest first."""
+    rows = conn.execute(
+        select(
+            jobs.c.company_slug,
+            func.max(jobs.c.company_name).label("name"),
+            func.count().label("open_jobs"),
+        )
+        .where(jobs.c.closed_at.is_(None))
+        .group_by(jobs.c.company_slug)
+        .order_by(func.count().desc())
+    ).mappings()
+    return [dict(r) for r in rows]
+
+
 def companies(conn: Connection) -> list[dict[str, Any]]:
     rows = conn.execute(
         select(company_status).order_by(

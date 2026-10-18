@@ -39,6 +39,32 @@ def test_detect_remote(
     assert detect_remote(job) is expected
 
 
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        ("This role is open to candidates in India and Singapore.", RemoteType.REMOTE_INDIA_OK),
+        ("We are hiring across APAC for this position.", RemoteType.REMOTE_INDIA_OK),
+        ("You must be based in the US to be considered.", RemoteType.REMOTE_RESTRICTED),
+        (
+            "Candidates must be authorized to work in the United States.",
+            RemoteType.REMOTE_RESTRICTED,
+        ),
+        ("Remote - US. Occasional travel.", RemoteType.REMOTE_RESTRICTED),
+        ("We value curiosity and kindness.", RemoteType.REMOTE_UNSPECIFIED),
+    ],
+)
+def test_description_eligibility_refines_bare_remote(
+    make_job: Callable[..., Job], description: str, expected: RemoteType
+) -> None:
+    job = make_job(locations=["Remote"], description_text=description)
+    assert detect_remote(job) is expected
+
+
+def test_location_line_in_description(make_job: Callable[..., Job]) -> None:
+    job = make_job(locations=[], description_text="About us\nLocation: Bengaluru, India\nHybrid")
+    assert detect_remote(job) is RemoteType.ONSITE
+
+
 def test_remote_from_description_when_locations_silent(make_job: Callable[..., Job]) -> None:
     job = make_job(locations=["New York"], description_text="This is a fully remote role.")
     assert detect_remote(job) is RemoteType.REMOTE_UNSPECIFIED

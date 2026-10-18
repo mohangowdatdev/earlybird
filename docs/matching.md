@@ -42,6 +42,12 @@ The score is a weighted sum, with weights from the profile:
 - **YOE fit:** the extracted range overlaps the profile's YOE with a tolerance of **−1 to +2 years**. Unknown YOE scores neutral, never negative.
 - **Location fit:** `remote_india_ok` is best, `remote_unspecified` and `unknown` are neutral, and `hybrid` in an allowed city depends on the profile. `remote_restricted` (e.g. "US only") is down-ranked, not excluded, unless the profile says otherwise.
 
+### 2b. Description-aware rules and small-model refinement
+
+- **Rules:** descriptions are scanned for eligibility ("open to candidates in India", "hiring across APAC" → India OK; "must be based in the US", "authorized to work in the United States" → restricted) and for `Location:` lines.
+- **Small model ([ADR 0016](decisions/0016-small-local-model-extraction.md)):** `qwen2.5:3b` via Ollama, for tech roles the rules left unclear. Its answer is merged fail-open and *grounded*: every claim must be backed by the posting text.
+- **Skills:** a 182-skill taxonomy in 18 categories (`enrich/stack.yaml`). Platform services imply their cloud (ADF → azure, Glue → aws). Profile skills match through aliases (pyspark → spark).
+
 ### 3. LLM fit (optional, off by default)
 
 When an LLM is configured ([ADR 0007](decisions/0007-llm-provider.md)), it returns strict JSON validated by pydantic:
@@ -72,7 +78,7 @@ When an LLM is configured ([ADR 0007](decisions/0007-llm-provider.md)), it retur
 
 1. **Unknown means keep.** Unknown remote type, YOE or seniority never lowers a job below maybe.
 2. **YOE tolerance** of −1 to +2 years around the profile.
-3. **Perch bypass:** jobs from watchlist companies skip excludes and scoring and always show (marked ★).
+3. **Dream companies (Perch):** relevant roles at watched companies (a full role-family match in the title, or a partial match plus a must-have skill) are promoted to strong (★). Hard excludes still apply, and off-topic roles there are scored normally.
 4. **Weekly excluded sample:** a random sample (default 20) of last week's excluded jobs, shown for review. Every "this should have been kept" becomes a rule fix or a feedback example.
 5. **Feedback loop:** save and dismiss clicks are stored and used as examples (LLM) and as keyword weight hints (rules).
 6. **Chirp discipline:** Telegram alerts only for **strong** matches at **watchlist** companies, capped per day (default 5).

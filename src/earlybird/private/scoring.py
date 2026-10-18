@@ -1,7 +1,8 @@
 """Rule-based personal fit scoring (docs/matching.md). Fail-open: unknowns never push a job out.
 
 Score out of 10: role family 0-4, skills 0-3, experience 0-1.5, location 0-1.5,
-minus penalties for a seniority or salary mismatch. Watchlist (Perch) jobs bypass everything.
+minus penalties for a seniority or salary mismatch. Dream companies (Perch): any job there that
+is even loosely relevant (a role or skill match) is promoted to strong; hard excludes still apply.
 """
 
 import re
@@ -12,9 +13,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from earlybird.core.models import RemoteType, Seniority
+from earlybird.enrich.rules import canonical_skill
 from earlybird.private.profile import Profile
 
 STRONG_AT = 8.0
+ROLE_MATCH = 2.5  # every specific word of a role family is in the title
 MAYBE_AT = 5.0
 YOE_TOLERANCE_BELOW = 1
 YOE_TOLERANCE_ABOVE = 2
@@ -46,9 +49,17 @@ def _tokens(text: str) -> set[str]:
     return set(_TOKEN.findall(text.lower()))
 
 
+# Phrases that share words with real role families but mean something else entirely.
+_FALSE_FRIENDS = re.compile(
+    r"\bdata ?cent(?:er|re)s?\b|\bdata entry\b|\bdata protection officer\b|\bai trainer\b",
+    re.IGNORECASE,
+)
+
+
 def _role_points(title: str, families: list[str]) -> tuple[float, str | None]:
     if not families:
         return 2.0, None  # no preference stated: neutral
+    title = _FALSE_FRIENDS.sub(" ", title)
     lowered = " ".join(_TOKEN.findall(title.lower()))
     title_tokens = _tokens(title)
     best = 0.0
@@ -73,8 +84,8 @@ def _role_points(title: str, families: list[str]) -> tuple[float, str | None]:
 
 def _skill_points(stack: list[str], title: str, profile: Profile) -> tuple[float, list[str]]:
     have = {s.lower() for s in stack} | _tokens(title)
-    must_hits = [s for s in profile.skills_must if s in have]
-    nice_hits = [s for s in profile.skills_nice if s in have]
+    must_hits = [s for s in profile.skills_must if canonical_skill(s) in have or s in have]
+    nice_hits = [s for s in profile.skills_nice if canonical_skill(s) in have or s in have]
     if not profile.skills_must and not profile.skills_nice:
         return 1.5, []
     must = 2.0 * len(must_hits) / len(profile.skills_must) if profile.skills_must else 1.0
@@ -113,8 +124,6 @@ def _excluded_by_title(title: str, patterns: list[str]) -> str | None:
 
 def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
     """Score one job row (a mapping with the `jobs` table's columns)."""
-    if job["company_slug"] in profile.watchlist:
-        return Score(value=10.0, bucket=Bucket.STRONG, reasons=["watchlist"], watchlist=True)
     title: str = job["title"]
     if reason := _excluded_by_title(title, profile.exclude_title_patterns):
         return Score(value=0.0, bucket=Bucket.EXCLUDED, excluded_reason=reason)
@@ -146,6 +155,18 @@ def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
         value -= 1.0
         reasons.append("salary:below_min")
     value = round(max(0.0, min(10.0, value)), 1)
+    parts = {"role": role, "skills": skills, "experience": yoe, "location": location}
+    must_hit = any(s in profile.skills_must for s in skill_hits)
+    relevant = family is not None and (role >= ROLE_MATCH or (role > 0 and must_hit))
+    if job["company_slug"] in profile.watchlist and relevant:
+        return Score(
+            value=max(value, STRONG_AT),
+            bucket=Bucket.STRONG,
+            reasons=["watchlist", *reasons],
+            watchlist=True,
+            parts=parts,
+            skill_hits=skill_hits,
+        )
 
     if value >= STRONG_AT:
         bucket = Bucket.STRONG
@@ -161,6 +182,6 @@ def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
         bucket=bucket,
         reasons=reasons,
         excluded_reason="low_score" if bucket is Bucket.EXCLUDED else None,
-        parts={"role": role, "skills": skills, "experience": yoe, "location": location},
+        parts=parts,
         skill_hits=skill_hits,
     )

@@ -38,26 +38,83 @@ _DESCRIPTION_REMOTE = re.compile(
 )
 
 
+# Eligibility language inside descriptions ("open to candidates in India", "must be authorized
+# to work in the US"). Location fields often just say "Remote"; the truth is in the text.
+_GAP = r"\W+(?:[\w'’-]+\W+){0,6}?"
+_ELIGIBLE_VERB = (
+    r"(?:open to|hiring (?:in|from|across)|based in|located in|reside in|residing in|"
+    r"live in|living in|candidates (?:in|from|across)|work from|remote (?:in|from|within|across)|"
+    r"anywhere in|eligible to work in|team in|offices? in)"
+)
+_INDIA_PLACES = (
+    r"(?:india|bangalore|bengaluru|hyderabad|pune|chennai|mumbai|gurgaon|gurugram|noida|delhi|"
+    r"apac|asia|asia[- ]pacific|anywhere in the world|worldwide|globally)"
+)
+_DESC_INDIA = re.compile(
+    _ELIGIBLE_VERB + _GAP + _INDIA_PLACES + r"\b"
+    r"|\bremote\W{1,3}(?:india|apac)\b|\b(?:india|apac)\W{1,3}remote\b",
+    re.IGNORECASE,
+)
+_US_EU = r"(?:the )?(?:us|u\.s\.a?|usa|united states|canada|uk|united kingdom|europe|eu|emea)"
+_DESC_RESTRICTED = re.compile(
+    r"(?:must|should|need to|required to|will need to)\s+(?:be\s+)?(?:based|located|reside|"
+    r"residing|live|living)\s+(?:in|within)\s+" + _US_EU + r"\b"
+    r"|authori[sz]ed to work in\s+" + _US_EU + r"\b"
+    r"|\b(?:us|u\.s\.) (?:citizens?|persons?) only\b|\bsecurity clearance\b"
+    r"|\bremote\W{1,3}(?:us|usa|united states|canada|uk|europe|eu|emea|latam)\b"
+    r"|\bwithin (?:the )?(?:us|united states|eu|uk)\b",
+    re.IGNORECASE,
+)
+_LOCATION_LINE = re.compile(r"^\s*(?:job\s+)?locations?\s*[:\-–]\s*(.{3,80})$", re.I | re.M)
+
+
+def description_eligibility(text: str | None) -> RemoteType | None:
+    """Region eligibility stated in the description, if any (India/APAC wins: fail-open)."""
+    if not text:
+        return None
+    if _DESC_INDIA.search(text):
+        return RemoteType.REMOTE_INDIA_OK
+    if _DESC_RESTRICTED.search(text):
+        return RemoteType.REMOTE_RESTRICTED
+    return None
+
+
+def description_locations(text: str | None) -> list[str]:
+    """`Location: Bengaluru, India` style lines, for postings with empty location fields."""
+    if not text:
+        return []
+    found = [m.group(1).strip(" .") for m in _LOCATION_LINE.finditer(text)]
+    return list(dict.fromkeys(found))[:3]
+
+
+def _remote_region(raw: str, locations: list[str], description: str | None) -> RemoteType:
+    """For a remote job: who may apply? Fields first, then the description's own words."""
+    region_text = " | ".join([raw if raw.lower() not in _REMOTE_FLAGS else "", *locations])
+    if _INDIA_OK.search(region_text):
+        return RemoteType.REMOTE_INDIA_OK
+    stated = description_eligibility(description)
+    if stated is RemoteType.REMOTE_INDIA_OK:
+        return stated
+    if _RESTRICTED.search(region_text):
+        return RemoteType.REMOTE_RESTRICTED
+    return stated or RemoteType.REMOTE_UNSPECIFIED
+
+
 def detect_remote(job: Job) -> RemoteType:
     raw = (job.remote_raw or "").strip()
     # Any other remote_raw is a remote signal: boards put their region restriction there.
     flag_remote = raw.lower() not in _NON_REMOTE_FLAGS and not _HYBRID.search(raw)
-    texts = [*job.locations, raw, job.title]
+    locations = job.locations or description_locations(job.description_text)
+    texts = [*locations, raw, job.title]
     joined = " | ".join(t for t in texts if t)
 
     if _HYBRID.search(joined):
         return RemoteType.HYBRID if not flag_remote else RemoteType.REMOTE_UNSPECIFIED
     if flag_remote or _REMOTE.search(joined):
-        # Region evidence: the remote_raw text itself, plus the listed locations.
-        region_text = " | ".join([raw if raw.lower() not in _REMOTE_FLAGS else "", *job.locations])
-        if _INDIA_OK.search(region_text):
-            return RemoteType.REMOTE_INDIA_OK
-        if _RESTRICTED.search(region_text):
-            return RemoteType.REMOTE_RESTRICTED
-        return RemoteType.REMOTE_UNSPECIFIED
+        return _remote_region(raw, locations, job.description_text)
     if job.description_text and _DESCRIPTION_REMOTE.search(job.description_text):
-        return RemoteType.REMOTE_UNSPECIFIED
-    return RemoteType.ONSITE if job.locations else RemoteType.UNKNOWN
+        return description_eligibility(job.description_text) or RemoteType.REMOTE_UNSPECIFIED
+    return RemoteType.ONSITE if locations else RemoteType.UNKNOWN
 
 
 # ---------- years of experience ----------
@@ -135,6 +192,24 @@ def detect_seniority(title: str) -> Seniority:
 # ---------- stack ----------
 
 
+# Bump when extraction rules or the taxonomy change: existing jobs are re-extracted on next fetch.
+EXTRACTOR_VERSION = 2
+
+POPULAR_SKILLS = (
+    "python", "sql", "spark", "databricks", "airflow", "dbt", "snowflake", "bigquery",
+    "aws", "azure", "gcp", "kafka", "terraform", "docker", "kubernetes", "llm", "rag",
+    "pytorch", "mlflow", "langchain",
+)  # fmt: skip
+
+
+@cache
+def _taxonomy() -> dict[str, dict[str, list[str]]]:
+    """category -> canonical tag -> aliases, from stack.yaml."""
+    raw = yaml.safe_load(resources.files("earlybird.enrich").joinpath("stack.yaml").read_text())
+    return {category: {tag: list(aliases or []) for tag, aliases in tags.items()}
+            for category, tags in raw.items()}  # fmt: skip
+
+
 @cache
 def _stack_matcher() -> tuple[re.Pattern[str], dict[str, str]]:
     """One alternation over every alias (longest first), mapping each alias to its tag.
@@ -142,35 +217,73 @@ def _stack_matcher() -> tuple[re.Pattern[str], dict[str, str]]:
     Aliases prefixed with `=` are case-sensitive (e.g. `=Go`), for names that are also
     everyday words; a tag with such an alias is not matched by its bare lowercase name.
     """
-    raw = yaml.safe_load(resources.files("earlybird.enrich").joinpath("stack.yaml").read_text())
     insensitive: dict[str, str] = {}
     sensitive: dict[str, str] = {}
-    for tag, aliases in raw.items():
-        names = list(aliases or [])
-        if not any(n.startswith("=") and n[1:].lower() == tag for n in names):
-            names.append(tag)
-        for name in names:
-            if name.startswith("="):
-                sensitive[name[1:]] = tag
-            else:
-                insensitive[name.lower()] = tag
+    for tags in _taxonomy().values():
+        for tag, aliases in tags.items():
+            names = list(aliases)
+            if not any(n.startswith("=") and n[1:].lower() == tag for n in names):
+                names.append(tag)
+            for name in names:
+                if name.startswith("="):
+                    sensitive[name[1:]] = tag
+                else:
+                    insensitive[name.lower()] = tag
     branches = [f"(?-i:{re.escape(n)})" for n in sensitive]
     branches += [re.escape(n) for n in insensitive]
     branches.sort(key=len, reverse=True)
-    pattern = re.compile(rf"(?<![\w/.-])(?:{'|'.join(branches)})(?![\w/-])", re.I)
+    pattern = re.compile(rf"(?<![\w/.#+-])(?:{'|'.join(branches)})(?![\w/#+-])", re.I)
     return pattern, {**{k.lower(): v for k, v in sensitive.items()}, **insensitive}
 
 
-def extract_stack(text: str, *, limit: int = 12) -> list[str]:
+# Platform services imply their cloud, so a profile skill like "azure" matches "Azure Databricks".
+_IMPLIES = {
+    "azure": {
+        "azure data factory", "synapse", "adls", "purview", "event hubs", "cosmos db", "aks",
+        "azure functions", "azure ml", "azure openai", "microsoft fabric", "azure devops",
+    },
+    "aws": {
+        "s3", "aws glue", "emr", "athena", "redshift", "kinesis", "sagemaker", "bedrock",
+        "aws lambda", "eks", "ecs", "ec2", "dynamodb", "step functions", "cloudformation",
+    },
+    "gcp": {
+        "bigquery", "dataflow", "dataproc", "pub/sub", "gcs", "gke", "vertex ai",
+        "cloud composer", "cloud run", "bigtable",
+    },
+}  # fmt: skip
+
+
+def extract_stack(text: str, *, limit: int = 20) -> list[str]:
     """Stack tags ordered by how often they're mentioned (one regex pass)."""
     pattern, alias_to_tag = _stack_matcher()
     counts = Counter(alias_to_tag[m.group(0).lower()] for m in pattern.finditer(text))
+    if "azure databricks" in text.lower():
+        counts["azure"] += 1
+    for parent, children in _IMPLIES.items():
+        if parent not in counts and children & counts.keys():
+            counts[parent] = 1
     return [tag for tag, _ in counts.most_common(limit)]
 
 
+def canonical_skill(name: str) -> str:
+    """Map any alias a person types (\"pyspark\", \"postgres\") to its canonical tag."""
+    key = name.strip().lower()
+    return _stack_matcher()[1].get(key, key)
+
+
+def stack_catalog() -> list[dict[str, str]]:
+    """Every canonical tag with its category, popular ones first (for suggestions)."""
+    catalog = [{"value": tag, "label": tag, "group": "Popular for data & AI"}
+               for tag in POPULAR_SKILLS]  # fmt: skip
+    seen = set(POPULAR_SKILLS)
+    for category, tags in _taxonomy().items():
+        catalog += [{"value": t, "label": t, "group": category} for t in tags if t not in seen]
+    return catalog
+
+
 def stack_tags() -> list[str]:
-    """All canonical stack tags, for suggestions in the profile builder."""
-    return list(dict.fromkeys(_stack_matcher()[1].values()))
+    """All canonical stack tags."""
+    return [tag for tags in _taxonomy().values() for tag in tags]
 
 
 # ---------- summary ----------

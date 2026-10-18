@@ -23,10 +23,22 @@ class Settings(BaseSettings):
     sync_interval_minutes: int = 60
     dawn_window_days: int = 3
 
+    # Small-model extraction (docs/matching.md). "none" keeps rules only.
+    llm_provider: Literal["none", "ollama"] = "none"
+    ollama_url: str = "http://127.0.0.1:11434"
+    llm_model: str = "qwen2.5:3b"
+    llm_time_budget_seconds: float = 1200.0
+    llm_max_jobs: int = 300
+    llm_queue_path: Path | None = None
+
     http_timeout_seconds: float = 20.0
     http_concurrency: int = 16
     log_format: Literal["auto", "console", "json"] = "auto"
     log_level: str = "INFO"
+
+    @property
+    def queue_path(self) -> Path:
+        return self.llm_queue_path or self.data_dir / "llm_queue.db"
 
     @property
     def db_url(self) -> str:

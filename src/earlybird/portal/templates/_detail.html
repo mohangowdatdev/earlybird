@@ -7,6 +7,7 @@
       <h2>{{ j.title }}</h2>
       <div class="co">{{ j.company_name }}{% if j.department %}<span class="muted">· {{ j.department }}</span>{% endif %}{% if s.watchlist %}<span class="chip brand">{{ ic.icon("star") }} Perch</span>{% endif %}{% if card.status and card.status not in ('new','seen') %}<span class="chip">{{ status_labels[card.status] }}</span>{% endif %}</div>
     </div>
+    <button class="btn sm {{ 'primary' if watching else '' }}" data-watch="{{ j.company_slug }}" data-watching="{{ 'true' if watching else 'false' }}" data-company="{{ j.company_name }}" title="Dream companies: relevant roles here always go to the top">{{ ic.icon("star", "i sm") }}<span>{{ "Watching" if watching else "Watch company" }}</span></button>
     <button class="btn icon ghost" data-close-sheet aria-label="Close" style="display:none" onclick="this.closest('.detail').classList.remove('open');document.getElementById('sheet-backdrop').hidden=true">{{ ic.icon("x") }}</button>
   </div>
 
@@ -22,7 +23,7 @@
   <div class="why">
     <div class="why-head">
       {{ ic.score(card) }}
-      <div><div style="font-weight:680">{% if s.watchlist %}On your watchlist{% else %}{{ s.bucket.value | capitalize }} match{% endif %}</div>
+      <div><div style="font-weight:680">{% if s.watchlist %}Dream company · relevant role{% else %}{{ s.bucket.value | capitalize }} match{% endif %}</div>
       <div class="muted" style="font-size:12.5px">{% if s.excluded_reason %}Excluded: {{ s.excluded_reason | replace("title:", "title contains “") }}{{ "”" if "title:" in s.excluded_reason }}{% elif "kept:unknowns" in s.reasons %}Kept because key facts are unknown (fail-open){% else %}Why it scored {{ s.value }}{% endif %}</div></div>
     </div>
     {% if s.parts %}

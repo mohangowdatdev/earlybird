@@ -5,6 +5,9 @@ All notable changes are recorded here. Format: [Keep a Changelog](https://keepac
 ## [Unreleased]
 
 ### Added
+- Skills taxonomy (182 skills, 18 categories) with grouped suggestions and alias-aware matching; existing jobs re-tagged via `EXTRACTOR_VERSION`.
+- Description-aware eligibility and location rules, plus small-model refinement (Ollama, qwen2.5:3b) with grounding checks, a time budget and a cached queue.
+- Dream companies (Perch): searchable company grid, ☆ Watch on every job, relevance-gated promotion.
 - Portal redesign: sunrise-yellow design system (light/dark), adaptive layout (sidebar / rail / bottom tabs), Overview dashboard, two-pane Dawn with bottom sheet on mobile, drag-and-drop Nest with drawer, Explore, Sources with registry, rebuilt profile editor (tag inputs with autocomplete, option cards, live preview, sticky save bar), toasts with undo, keyboard shortcuts with help overlay, Sync-now button.
 - Public ingestion: Greenhouse, Lever, Ashby, RemoteOK, We Work Remotely adapters (verified, with real fixtures); Himalayas and Remotive on the private plane (ADR 0015).
 - Pipeline: normalize, canonical-key dedupe, rule-based extraction (remote type, YOE, seniority, stack, summary), job closing, health checks.

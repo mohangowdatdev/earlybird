@@ -1,0 +1,12 @@
+name: Add a company
+description: Add a company to the registry
+labels: [registry]
+body:
+  - type: input
+    id: company
+    attributes: {label: Company name}
+    validations: {required: true}
+  - type: input
+    id: careers
+    attributes: {label: Careers page URL, description: "e.g. https://boards.greenhouse.io/acme"}
+    validations: {required: true}

@@ -1,0 +1,11 @@
+name: Bug
+description: Something broke or behaves wrongly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: {label: What happened, description: "Include the command and log lines. Never paste secrets or your profile."}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: What you expected}

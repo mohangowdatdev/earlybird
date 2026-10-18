@@ -1,0 +1,64 @@
+[project]
+name = "earlybird"
+version = "0.1.0.dev0"
+description = "The early bird gets the job. Every new role from company career pages, filtered to you, the morning it opens."
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Mohan Gowda T", email = "mohangowdat.dev@gmail.com" }]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/mohangowdatdev/earlybird"
+
+[build-system]
+requires = ["uv_build>=0.9,<0.14"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "N", "S", "PTH", "TRY", "DTZ", "PL"]
+ignore = ["PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.importlinter]
+root_package = "earlybird"
+
+[[tool.importlinter.contracts]]
+name = "Public plane never imports the private plane (ADR 0013)"
+type = "forbidden"
+source_modules = [
+    "earlybird.core",
+    "earlybird.db",
+    "earlybird.adapters",
+    "earlybird.health",
+    "earlybird.discovery",
+    "earlybird.enrich",
+    "earlybird.publish",
+]
+forbidden_modules = ["earlybird.private", "earlybird.notify", "earlybird.portal"]
+
+[dependency-groups]
+dev = [
+    "check-jsonschema>=0.38.2",
+    "import-linter>=2.15",
+    "mypy>=2.4.0",
+    "pre-commit>=4.7.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]

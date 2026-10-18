@@ -1,0 +1,12 @@
+name: New source
+description: Propose a new ATS or job-board adapter
+labels: [source]
+body:
+  - type: input
+    id: source
+    attributes: {label: Source name and URL}
+    validations: {required: true}
+  - type: textarea
+    id: endpoint
+    attributes: {label: Public endpoint, description: "Must be public and unauthenticated, with no bot protection. Link the API docs or terms if any."}
+    validations: {required: true}

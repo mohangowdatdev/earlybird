@@ -1,0 +1,13 @@
+# gitleaks configuration: default rules plus Earlybird-specific ones.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram bot token"
+regex = '''\b[0-9]{8,10}:[A-Za-z0-9_-]{35}\b'''
+
+[[rules]]
+id = "gmail-app-password"
+description = "Google app password assigned in config"
+regex = '''(?i)app_password\s*=\s*['"]?[a-z]{4}\s?[a-z]{4}\s?[a-z]{4}\s?[a-z]{4}'''

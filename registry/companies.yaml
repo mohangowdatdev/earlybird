@@ -1,0 +1,3 @@
+# The company registry: the real coverage limit (docs/sources.md).
+# Seeded from Mohan's list in Phase 1. Validated against registry/schema.json by `make lint`.
+companies: []

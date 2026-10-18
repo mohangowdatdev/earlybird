@@ -1,0 +1,37 @@
+# Secrets and personal data: never commit
+.env
+.env.*
+!.env.example
+profile.yaml
+profile.*.yaml
+!profile.example.yaml
+*.db
+*.db-*
+*.sqlite*
+var/
+secrets/
+*.pem
+*.key
+token.json
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.import_linter_cache/
+.coverage
+htmlcov/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

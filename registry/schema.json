@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Earlybird company registry",
+  "type": "object",
+  "required": ["companies"],
+  "additionalProperties": false,
+  "properties": {
+    "companies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "name", "ats"],
+        "additionalProperties": false,
+        "properties": {
+          "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "name": { "type": "string", "minLength": 1 },
+          "ats": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["type", "id"],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "enum": ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "workday",
+                           "recruitee", "bamboohr", "personio", "teamtailor", "breezy", "eightfold"]
+                },
+                "id": { "type": "string", "minLength": 1 },
+                "options": { "type": "object" }
+              }
+            }
+          },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "discovered_by": { "type": "string" },
+          "added_at": { "type": "string", "format": "date" },
+          "excluded": { "type": "boolean" },
+          "excluded_reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Earlybird{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>
+    :root { --pico-font-size: 15px; --eb-strong: #1a7f37; --eb-maybe: #9a6700; --eb-muted: #6e7781; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --eb-muted: #8b949e; } }
+    nav.top { border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 1rem; }
+    .banner { padding: .6rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: .9rem; }
+    .banner.ok { background: #dafbe1; color: #116329; }
+    .banner.warn { background: #fff8c5; color: #7d4e00; }
+    .card { padding: .8rem 1rem; margin-bottom: .6rem; border-left: 4px solid transparent; }
+    .card.strong { border-left-color: var(--eb-strong); }
+    .card.maybe { border-left-color: var(--eb-maybe); }
+    .card.active { outline: 2px solid var(--pico-primary); }
+    .card h4 { margin: 0 0 .2rem; font-size: 1.05rem; }
+    .meta { color: var(--eb-muted); font-size: .85rem; margin: 0; }
+    .score { float: right; font-weight: 700; }
+    .score.strong { color: var(--eb-strong); } .score.maybe { color: var(--eb-maybe); }
+    .badge { font-size: .7rem; padding: .05rem .4rem; border-radius: 4px; background: var(--pico-primary-background); color: var(--pico-primary-inverse); margin-left: .4rem; vertical-align: middle; }
+    .actions { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; }
+    .actions button, .actions a[role=button] { padding: .2rem .6rem; font-size: .8rem; margin: 0; }
+    .reasons { display: none; gap: .3rem; flex-wrap: wrap; }
+    .card.dismissing .reasons { display: flex; }
+    kbd { font-size: .7rem; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .muted { color: var(--eb-muted); }
+    .tags span { font-size: .75rem; background: var(--pico-secondary-background); color: var(--pico-secondary-inverse); padding: 0 .35rem; border-radius: 4px; margin-right: .25rem; }
+  </style>
+</head>
+<body>
+<nav class="top container">
+  <ul><li><strong>🐦 Earlybird</strong></li></ul>
+  <ul>
+    <li><a href="/dawn">Dawn</a></li>
+    <li><a href="/nest">Nest</a></li>
+    <li><a href="/jobs">All jobs</a></li>
+    <li><a href="/profile">Profile</a></li>
+  </ul>
+</nav>
+<main class="container">
+{% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

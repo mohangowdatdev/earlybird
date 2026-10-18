@@ -1,0 +1,19 @@
+{% set j = card.job %}
+<article class="card {{ card.score.bucket.value }}" tabindex="-1" data-url="{{ j.url }}">
+  <span class="score {{ card.score.bucket.value }}">{% if card.score.watchlist %}★{% else %}{{ card.score.value }}{% endif %}</span>
+  <h4><a href="{{ j.url }}" target="_blank" rel="noopener" data-action="open">{{ j.title }}</a>{% if card.is_new %}<span class="badge">new</span>{% endif %}</h4>
+  <p class="meta"><strong>{{ j.company_name }}</strong> · {{ remote_label(j.remote_type) }}{% if j.locations %} · {{ j.locations[:3] | join(" / ") }}{% endif %}</p>
+  <p class="meta">{{ j.summary }} · first seen {{ ago(j.first_seen_at, now) }} ·
+    {% for source, url in card.sources %}<a href="{{ url }}" target="_blank" rel="noopener">{{ source }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% if j.stack %}<p class="meta tags">{% for s in j.stack[:8] %}<span>{{ s }}</span>{% endfor %}</p>{% endif %}
+  {% if card.score.excluded_reason %}<p class="meta">excluded: {{ card.score.excluded_reason }}</p>{% endif %}
+  <div class="actions">
+    {% set ids = card.job_ids | join(",") %}
+    <button class="outline" data-action="save" hx-post="/triage" hx-vals='{"job_ids": "{{ ids }}", "status": "saved"}' hx-target="closest article" hx-swap="outerHTML"><kbd>s</kbd> save</button>
+    <button class="outline secondary" data-action="dismiss" onclick="this.closest('article').classList.toggle('dismissing')"><kbd>d</kbd> dismiss…</button>
+    <button class="outline" data-action="applied" hx-post="/triage" hx-vals='{"job_ids": "{{ ids }}", "status": "applied"}' hx-target="closest article" hx-swap="outerHTML"><kbd>a</kbd> applied</button>
+    <div class="reasons">
+      {% for r in reasons %}<button class="secondary" data-reason="{{ loop.index }}" hx-post="/triage" hx-vals='{"job_ids": "{{ ids }}", "status": "dismissed", "reason": "{{ r }}"}' hx-target="closest article" hx-swap="outerHTML"><kbd>{{ loop.index }}</kbd> {{ r }}</button>{% endfor %}
+    </div>
+  </div>
+</article>

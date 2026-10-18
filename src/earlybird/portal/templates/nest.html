@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Nest · Earlybird{% endblock %}
+{% block content %}
+<hgroup><h2>Nest</h2><p>Shortlist your top 3–5, then apply properly: tailored CV and a referral or message.</p></hgroup>
+{% if columns.shortlisted | length > 5 %}<div class="banner warn">⚠ {{ columns.shortlisted | length }} shortlisted. Focus beats volume; keep it to 3–5.</div>{% endif %}
+<div class="cols">
+{% for status, cards in columns.items() %}
+  <section>
+    <h5>{{ status | capitalize }} <span class="muted">({{ cards | length }})</span></h5>
+    {% for card in cards %}{% set j = card.job %}
+    <article class="card {{ card.score.bucket.value }}">
+      <h4><a href="{{ j.url }}" target="_blank" rel="noopener">{{ j.title }}</a></h4>
+      <p class="meta"><strong>{{ j.company_name }}</strong> · {{ remote_label(j.remote_type) }} · {{ ago(card.extra.updated_at, now) }}</p>
+      <form method="post" action="/nest/{{ j.job_id }}">
+        <select name="status" onchange="this.form.submit()">
+          {% for s in columns.keys() %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          <option value="dismissed">dismissed</option>
+        </select>
+      </form>
+      <form method="post" action="/nest/{{ j.job_id }}">
+        <textarea name="note" rows="2" placeholder="Notes: CV tailored? referral from? message sent?">{{ card.extra.note or "" }}</textarea>
+        <button class="outline" type="submit">Save note</button>
+      </form>
+    </article>
+    {% endfor %}
+  </section>
+{% endfor %}
+</div>
+{% endblock %}

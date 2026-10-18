@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Profile · Earlybird{% endblock %}
+{% block content %}
+<hgroup>
+  <h2>{% if welcome %}Welcome. Build your profile{% else %}Your profile{% endif %}</h2>
+  <p>Everything personal lives here (saved to <code>profile.yaml</code>, never committed). Lists are comma-separated.</p>
+</hgroup>
+{% if saved %}<div class="banner ok">✓ Saved. Dawn is now scored with this profile.</div>{% endif %}
+{% if errors %}<div class="banner warn">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+<form method="post">
+  <div class="grid">
+    <label>Name <input name="name" value="{{ profile.name }}"></label>
+    <label>Years of experience <input type="number" name="yoe" min="0" max="50" value="{{ profile.yoe }}"></label>
+  </div>
+
+  <label>Role families <small class="muted">matched against job titles</small>
+    <input name="role_families" list="roles" value="{{ profile.role_families | join(', ') }}" placeholder="data engineer, ml engineer"></label>
+  <datalist id="roles">{% for r in role_suggestions %}<option value="{{ r }}">{% endfor %}</datalist>
+
+  <div class="grid">
+    <label>Must-have skills <input name="skills_must" list="skills" value="{{ profile.skills_must | join(', ') }}" placeholder="python, sql, spark"></label>
+    <label>Nice-to-have skills <input name="skills_nice" list="skills" value="{{ profile.skills_nice | join(', ') }}" placeholder="airflow, dbt, llm"></label>
+  </div>
+  <datalist id="skills">{% for s in skill_suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
+
+  <fieldset>
+    <legend>Accepted work arrangements</legend>
+    {% for r in remote_types %}<label><input type="checkbox" name="remote_types" value="{{ r.value }}" {% if r in profile.remote_types %}checked{% endif %}> {{ remote_label(r.value) }}</label>{% endfor %}
+    <small class="muted">Unchecked "unknown"/"Remote" still stay visible as maybe (fail-open); they just score lower.</small>
+  </fieldset>
+
+  <label>Cities for hybrid / onsite roles <small class="muted">empty = remote only</small>
+    <input name="cities" value="{{ profile.cities | join(', ') }}" placeholder="bangalore, bengaluru"></label>
+
+  <fieldset>
+    <legend>Preferred seniority <small class="muted">none checked = any</small></legend>
+    {% for s in seniorities %}<label><input type="checkbox" name="seniorities" value="{{ s.value }}" {% if s in profile.seniorities %}checked{% endif %}> {{ s.value | replace("_", " ") }}</label>{% endfor %}
+  </fieldset>
+
+  <label>Exclude titles containing <small class="muted">hard excludes, near-certain only</small>
+    <textarea name="exclude_title_patterns" rows="2">{{ profile.exclude_title_patterns | join(', ') }}</textarea></label>
+
+  <label>Perch watchlist <small class="muted">company slugs; their jobs always show, unscored</small>
+    <input name="watchlist" list="companies" value="{{ profile.watchlist | join(', ') }}"></label>
+  <datalist id="companies">{% for c in companies %}<option value="{{ c.slug }}">{{ c.name }}</option>{% endfor %}</datalist>
+
+  <div class="grid">
+    <label>Minimum salary (USD / year, optional) <input type="number" name="min_salary_usd" min="0" value="{{ profile.min_salary_usd or '' }}"></label>
+    <label>Chirp alerts per day <input type="number" name="chirp_daily_cap" min="0" max="50" value="{{ profile.chirp_daily_cap }}"></label>
+  </div>
+  <button type="submit">Save profile</button>
+</form>
+{% endblock %}

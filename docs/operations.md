@@ -43,7 +43,7 @@ cp profile.example.yaml profile.yaml
 ## GitHub
 
 - **Repo:** [`mohangowdatdev/earlybird`](https://github.com/mohangowdatdev/earlybird), public from the first commit.
-- **Account:** all `gh` calls use `GH_TOKEN=$(gh auth token --user mohangowdatdev)` so that the global active account (used for other work) is never switched. The repo-local git config pins the push credentials and author.
+- **Account:** all `gh` calls use `GH_TOKEN=$(gh auth token --user mohangowdatdev)` so that the global active account (used for other work) is never switched. The repo-local git config pins the author and a credential helper that reads `mohangowdatdev`'s token from the keychain at push time (`gh auth token --user mohangowdatdev`). No token is ever stored in the repo or on disk in plain text.
 
 ### Workflows
 

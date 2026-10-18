@@ -1,53 +1,145 @@
 {% extends "base.html" %}
-{% block title %}Profile · Earlybird{% endblock %}
+{% import "_icons.html" as ic %}
+{% block title %}Profile{% endblock %}
+{% block heading %}{{ "Set up your profile" if welcome else "Profile" }}{% endblock %}
+{% block subheading %}Private: saved to profile.yaml on this laptop, never committed{% endblock %}
 {% block content %}
-<hgroup>
-  <h2>{% if welcome %}Welcome. Build your profile{% else %}Your profile{% endif %}</h2>
-  <p>Everything personal lives here (saved to <code>profile.yaml</code>, never committed). Lists are comma-separated.</p>
-</hgroup>
-{% if saved %}<div class="banner ok">✓ Saved. Dawn is now scored with this profile.</div>{% endif %}
-{% if errors %}<div class="banner warn">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
-<form method="post">
-  <div class="grid">
-    <label>Name <input name="name" value="{{ profile.name }}"></label>
-    <label>Years of experience <input type="number" name="yoe" min="0" max="50" value="{{ profile.yoe }}"></label>
-  </div>
+<div class="profile-layout">
+  <form id="profile-form" method="post" action="/profile" class="profile-sections" novalidate>
+    {% if welcome %}
+    <div class="card welcome-card">
+      <h2>Welcome to Earlybird.</h2>
+      <p>Tell Earlybird what a good job looks like for you. Every new posting gets scored against this, and the preview on the right updates as you go. You can change it any time.</p>
+    </div>
+    {% endif %}
+    {% if saved %}<div class="banner ok">{{ ic.icon("check") }}<div class="grow"><b>Profile saved.</b> Dawn is already re-ranked with it.</div><a class="btn sm" href="/dawn">Open Dawn {{ ic.icon("arrow-right", "i sm") }}</a></div>{% endif %}
+    {% if errors %}<div class="banner error">{{ ic.icon("alert") }}<div class="grow"><b>Please fix these:</b>{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div></div>{% endif %}
 
-  <label>Role families <small class="muted">matched against job titles</small>
-    <input name="role_families" list="roles" value="{{ profile.role_families | join(', ') }}" placeholder="data engineer, ml engineer"></label>
-  <datalist id="roles">{% for r in role_suggestions %}<option value="{{ r }}">{% endfor %}</datalist>
+    <section class="card psec" id="about">
+      <div class="psec-head"><span class="num">1</span><div><h3>About you</h3><p>Your experience sets the YOE window: from 1 year below to 2 years above.</p></div></div>
+      <div class="two">
+        <div class="field"><label for="name">Name</label><input class="input" id="name" name="name" value="{{ profile.name }}" placeholder="What should we call you?" autocomplete="given-name"></div>
+        <div class="field">
+          <label for="yoe">Years of experience</label>
+          <div class="range-wrap"><input type="range" id="yoe" name="yoe" min="0" max="25" step="1" value="{{ profile.yoe }}" data-output="yoe-out"><output class="range-val" id="yoe-out">{{ profile.yoe }} years</output></div>
+        </div>
+      </div>
+    </section>
 
-  <div class="grid">
-    <label>Must-have skills <input name="skills_must" list="skills" value="{{ profile.skills_must | join(', ') }}" placeholder="python, sql, spark"></label>
-    <label>Nice-to-have skills <input name="skills_nice" list="skills" value="{{ profile.skills_nice | join(', ') }}" placeholder="airflow, dbt, llm"></label>
-  </div>
-  <datalist id="skills">{% for s in skill_suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
+    <section class="card psec" id="roles">
+      <div class="psec-head"><span class="num">2</span><div><h3>Roles you want</h3><p>Matched against job titles. The biggest factor in your score.</p></div></div>
+      <div class="field">
+        <label for="roles-input">Role families</label>
+        <div class="tags" data-tags data-quick="10" data-input-id="roles-input" data-placeholder="e.g. data engineer" data-suggest='{{ role_suggestions | tojson }}'>
+          <input type="hidden" name="role_families" value="{{ profile.role_families | join(', ') }}">
+        </div>
+      </div>
+    </section>
 
-  <fieldset>
-    <legend>Accepted work arrangements</legend>
-    {% for r in remote_types %}<label><input type="checkbox" name="remote_types" value="{{ r.value }}" {% if r in profile.remote_types %}checked{% endif %}> {{ remote_label(r.value) }}</label>{% endfor %}
-    <small class="muted">Unchecked "unknown"/"Remote" still stay visible as maybe (fail-open); they just score lower.</small>
-  </fieldset>
+    <section class="card psec" id="skills">
+      <div class="psec-head"><span class="num">3</span><div><h3>Skills</h3><p>Matched against each job's extracted stack. Must-haves weigh most.</p></div></div>
+      <div class="stack" style="gap:18px">
+        <div class="field">
+          <label for="must-input">Must-have</label>
+          <div class="tags" data-tags data-input-id="must-input" data-placeholder="Search skills: python, spark, sql…" data-suggest='{{ skill_suggestions | tojson }}'>
+            <input type="hidden" name="skills_must" value="{{ profile.skills_must | join(', ') }}">
+          </div>
+        </div>
+        <div class="field">
+          <label for="nice-input">Nice-to-have</label>
+          <div class="tags" data-tags data-input-id="nice-input" data-placeholder="airflow, dbt, kafka, llm…" data-suggest='{{ skill_suggestions | tojson }}'>
+            <input type="hidden" name="skills_nice" value="{{ profile.skills_nice | join(', ') }}">
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <label>Cities for hybrid / onsite roles <small class="muted">empty = remote only</small>
-    <input name="cities" value="{{ profile.cities | join(', ') }}" placeholder="bangalore, bengaluru"></label>
+    <section class="card psec" id="where">
+      <div class="psec-head"><span class="num">4</span><div><h3>Where you'll work</h3><p>Pick every arrangement you'd accept. Unpicked ones still show as "maybe" when facts are unclear. Nothing good gets silently dropped.</p></div></div>
+      <div class="options">
+        {% for value, help, icon_name in remote_options %}
+        <label class="option">
+          <input type="checkbox" name="remote_types" value="{{ value.value }}" {{ 'checked' if value in profile.remote_types }}>
+          <span class="ic">{{ ic.icon(icon_name) }}</span>
+          <span><strong>{{ remote_label(value.value) }}</strong><span class="desc">{{ help }}</span></span>
+          <span class="check">{{ ic.icon("check") }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="field" style="margin-top:18px">
+        <label for="cities-input">Cities for hybrid and onsite roles</label>
+        <span class="hint">Leave empty if you only want remote roles. Add both spellings if needed (bangalore, bengaluru).</span>
+        <div class="tags" data-tags data-quick="6" data-input-id="cities-input" data-placeholder="Add a city" data-suggest='["bangalore", "bengaluru", "hyderabad", "pune", "chennai", "mumbai", "gurugram", "noida", "delhi"]'>
+          <input type="hidden" name="cities" value="{{ profile.cities | join(', ') }}">
+        </div>
+      </div>
+    </section>
 
-  <fieldset>
-    <legend>Preferred seniority <small class="muted">none checked = any</small></legend>
-    {% for s in seniorities %}<label><input type="checkbox" name="seniorities" value="{{ s.value }}" {% if s in profile.seniorities %}checked{% endif %}> {{ s.value | replace("_", " ") }}</label>{% endfor %}
-  </fieldset>
+    <section class="card psec" id="level">
+      <div class="psec-head"><span class="num">5</span><div><h3>Seniority</h3><p>Preferred levels. Others are down-ranked, not hidden. Pick none to accept any level.</p></div></div>
+      <div class="toggles">
+        {% for value, label in seniorities %}
+        <label class="toggle"><input type="checkbox" name="seniorities" value="{{ value.value }}" {{ 'checked' if value in profile.seniorities }}><span class="tick">{{ ic.icon("check") }}</span>{{ label }}</label>
+        {% endfor %}
+      </div>
+    </section>
 
-  <label>Exclude titles containing <small class="muted">hard excludes, near-certain only</small>
-    <textarea name="exclude_title_patterns" rows="2">{{ profile.exclude_title_patterns | join(', ') }}</textarea></label>
+    <section class="card psec" id="filters">
+      <div class="psec-head"><span class="num">6</span><div><h3>Hard excludes</h3><p>A job whose title contains one of these is excluded (with the reason recorded). Keep these near-certain.</p></div></div>
+      <div class="tags" data-tags data-input-id="ex-input" data-placeholder="Add a title word or phrase" data-suggest='["intern", "internship", "new grad", "director", "vice president", "vp", "head of", "chief", "sales", "account executive", "recruiter", "talent acquisition", "legal counsel", "marketing"]'>
+        <input type="hidden" name="exclude_title_patterns" value="{{ profile.exclude_title_patterns | join(', ') }}">
+      </div>
+    </section>
 
-  <label>Perch watchlist <small class="muted">company slugs; their jobs always show, unscored</small>
-    <input name="watchlist" list="companies" value="{{ profile.watchlist | join(', ') }}"></label>
-  <datalist id="companies">{% for c in companies %}<option value="{{ c.slug }}">{{ c.name }}</option>{% endfor %}</datalist>
+    <section class="card psec" id="perch">
+      <div class="psec-head"><span class="num">7</span><div><h3>Perch watchlist</h3><p>Dream companies. Their jobs always reach you, unscored and marked with a star.</p></div></div>
+      <div class="tags" data-tags data-free="false" data-input-id="perch-input" data-placeholder="Search {{ company_suggestions | length }} tracked companies…" data-suggest='{{ company_suggestions | tojson }}'>
+        <input type="hidden" name="watchlist" value="{{ profile.watchlist | join(', ') }}">
+      </div>
+    </section>
 
-  <div class="grid">
-    <label>Minimum salary (USD / year, optional) <input type="number" name="min_salary_usd" min="0" value="{{ profile.min_salary_usd or '' }}"></label>
-    <label>Chirp alerts per day <input type="number" name="chirp_daily_cap" min="0" max="50" value="{{ profile.chirp_daily_cap }}"></label>
-  </div>
-  <button type="submit">Save profile</button>
-</form>
+    <section class="card psec" id="alerts">
+      <div class="psec-head"><span class="num">8</span><div><h3>Salary and alerts</h3><p>Optional. Only salaries the posting states are compared; unstated is never a penalty.</p></div></div>
+      <div class="two">
+        <div class="field">
+          <label for="salary">Minimum salary</label>
+          <div class="input-affix"><span class="affix">$</span><input class="input" type="number" min="0" step="5000" id="salary" name="min_salary_usd" value="{{ profile.min_salary_usd or '' }}" placeholder="No minimum"><span class="affix">/ year</span></div>
+        </div>
+        <div class="field">
+          <label for="cap">Chirp alerts per day</label>
+          <div class="row"><div class="stepper">
+            <button type="button" data-step="-1" data-target="cap" aria-label="Fewer">{{ ic.icon("minus", "i sm") }}</button>
+            <input type="number" id="cap" name="chirp_daily_cap" min="0" max="50" value="{{ profile.chirp_daily_cap }}">
+            <button type="button" data-step="1" data-target="cap" aria-label="More">{{ ic.icon("plus", "i sm") }}</button>
+          </div><span class="hint">Strong matches at watchlist companies (Telegram, coming soon)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="savebar">
+      <span class="state">{{ ic.icon("user", "i sm") }}<span>{{ "All changes saved" if not welcome else "Fill in what you can; you can refine later" }}</span></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn ghost" data-discard>Discard</button>
+      <button type="submit" class="btn primary">{{ ic.icon("check") }} Save profile <span class="kbd">⌘S</span></button>
+    </div>
+  </form>
+
+  <aside class="aside">
+    <section class="card" hx-post="/profile/preview" hx-trigger="load, change from:#profile-form delay:350ms, input from:#name delay:800ms" hx-include="#profile-form" hx-target="#preview-body" hx-swap="innerHTML">
+      <div class="card-head"><h3>{{ ic.icon("sparkles", "i sm") }} Live preview</h3></div>
+      <div class="card-body preview-body" id="preview-body">
+        <div class="skeleton" style="height:64px"></div>
+        <div class="skeleton" style="height:14px;margin-top:12px;width:80%"></div>
+        <div class="skeleton" style="height:14px;margin-top:8px;width:60%"></div>
+      </div>
+    </section>
+    <nav class="card card-pad hide-sm" style="padding:14px" aria-label="Profile sections">
+      <div class="stack" style="gap:2px;font-size:13px">
+        {% for anchor, label in [("about","About you"),("roles","Roles"),("skills","Skills"),("where","Where you'll work"),("level","Seniority"),("filters","Hard excludes"),("perch","Perch watchlist"),("alerts","Salary and alerts")] %}
+        <a class="btn ghost sm" style="justify-content:flex-start" href="#{{ anchor }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+    </nav>
+  </aside>
+</div>
 {% endblock %}

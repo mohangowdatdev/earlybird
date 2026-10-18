@@ -1,29 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Nest · Earlybird{% endblock %}
+{% import "_icons.html" as ic %}
+{% block title %}Nest{% endblock %}
+{% block heading %}Nest{% endblock %}
+{% block subheading %}Drag cards between stages, or click one for details and notes{% endblock %}
 {% block content %}
-<hgroup><h2>Nest</h2><p>Shortlist your top 3–5, then apply properly: tailored CV and a referral or message.</p></hgroup>
-{% if columns.shortlisted | length > 5 %}<div class="banner warn">⚠ {{ columns.shortlisted | length }} shortlisted. Focus beats volume; keep it to 3–5.</div>{% endif %}
-<div class="cols">
-{% for status, cards in columns.items() %}
-  <section>
-    <h5>{{ status | capitalize }} <span class="muted">({{ cards | length }})</span></h5>
-    {% for card in cards %}{% set j = card.job %}
-    <article class="card {{ card.score.bucket.value }}">
-      <h4><a href="{{ j.url }}" target="_blank" rel="noopener">{{ j.title }}</a></h4>
-      <p class="meta"><strong>{{ j.company_name }}</strong> · {{ remote_label(j.remote_type) }} · {{ ago(card.extra.updated_at, now) }}</p>
-      <form method="post" action="/nest/{{ j.job_id }}">
-        <select name="status" onchange="this.form.submit()">
-          {% for s in columns.keys() %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s }}</option>{% endfor %}
-          <option value="dismissed">dismissed</option>
-        </select>
-      </form>
-      <form method="post" action="/nest/{{ j.job_id }}">
-        <textarea name="note" rows="2" placeholder="Notes: CV tailored? referral from? message sent?">{{ card.extra.note or "" }}</textarea>
-        <button class="outline" type="submit">Save note</button>
-      </form>
-    </article>
-    {% endfor %}
+{% set swatches = {"saved": "#ffc21a", "shortlisted": "#f97316", "applied": "#4f46e5", "interviewing": "#0ea5e9", "offer": "#16a34a", "rejected": "#a8a29e"} %}
+{% if columns.shortlisted | length > 5 %}
+<div class="banner warn" style="margin-bottom:14px">{{ ic.icon("target") }}<div class="grow"><b>{{ columns.shortlisted | length }} shortlisted.</b> Focus beats volume: keep it to 3–5 and give each one a tailored CV and a referral or message.</div></div>
+{% endif %}
+<div class="board" id="board">
+  {% for status, cards in columns.items() %}
+  <section class="col" data-status="{{ status }}" data-label="{{ status_labels[status] }}" aria-label="{{ status_labels[status] }}">
+    <div class="col-head"><span class="swatch" style="background: {{ swatches[status] }}"></span>{{ status_labels[status] }}<span class="n">{{ cards | length }}</span></div>
+    <div class="col-body">
+      {% for card in cards %}{% set j = card.job %}
+      <article class="kcard" draggable="true" tabindex="0" data-id="{{ j.job_id }}">
+        <div class="row" style="align-items:flex-start;gap:10px">
+          {{ ic.logo(j.company_name) }}
+          <div style="min-width:0;flex:1"><div class="kt">{{ j.title }}</div><div class="ks">{{ j.company_name }}</div></div>
+        </div>
+        <div class="kf">
+          {{ ic.remote_chip(j.remote_type) }}
+          <span class="spacer"></span>
+          <span class="has-note" title="Has a note" {{ 'hidden' if not card.extra.note }}>{{ ic.icon("note", "i sm") }}</span>
+          <span title="Last moved">{{ ago(card.extra.updated_at, now) | replace(" ago", "") }}</span>
+        </div>
+      </article>
+      {% endfor %}
+      <div class="col-empty" {{ 'hidden' if cards }}>Drop a job here</div>
+    </div>
   </section>
-{% endfor %}
+  {% endfor %}
 </div>
+{% if not columns.values() | map('length') | sum %}
+<div class="empty"><div class="em-ic">{{ ic.icon("kanban") }}</div><h3>Your Nest is empty</h3><p>Save or shortlist jobs in Dawn and they land here, ready for a proper application.</p><a class="btn primary" href="/dawn">{{ ic.icon("sunrise") }} Go to Dawn</a></div>
+{% endif %}
+<div class="overlay" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Job details">
+  <div id="drawer-body" class="drawer-body"><div style="padding:24px"><div class="skeleton" style="height:22px;width:70%"></div><div class="skeleton" style="height:14px;width:40%;margin-top:10px"></div></div></div>
+</aside>
 {% endblock %}

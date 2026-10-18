@@ -41,7 +41,7 @@ def client(settings: Settings, company: Company, make_job: Callable[..., Job]) -
 def test_first_visit_goes_to_profile_builder(client: TestClient) -> None:
     response = client.get("/", follow_redirects=False)
     assert response.headers["location"] == "/profile?welcome=1"
-    assert "Build your profile" in client.get("/profile?welcome=1").text
+    assert "Welcome to Earlybird" in client.get("/profile?welcome=1").text
 
 
 def test_profile_builder_saves_and_dawn_scores(client: TestClient, settings: Settings) -> None:
@@ -64,7 +64,15 @@ def test_profile_builder_saves_and_dawn_scores(client: TestClient, settings: Set
     dawn = client.get("/dawn")
     assert dawn.status_code == 200
     assert "Senior Data Engineer" in dawn.text
-    assert "1 strong" in dawn.text
+    assert 'Strong <span class="n">1</span>' in dawn.text
+
+    overview = client.get("/")
+    assert overview.status_code == 200
+    assert "Good " in overview.text and "Mohan" in overview.text
+
+    preview = client.post("/profile/preview", data={"yoe": "7", "role_families": "data engineer"})
+    assert preview.status_code == 200
+    assert "Strong" in preview.text
 
 
 def test_invalid_profile_shows_errors(client: TestClient) -> None:
@@ -80,11 +88,35 @@ def test_triage_updates_tracker(
     response = client.post(
         "/triage", data={"job_ids": job_id, "status": "dismissed", "reason": "location"}
     )
-    assert response.status_code == 200
+    assert response.json() == {"ok": True, "status": "dismissed", "count": 1}
     with make_engine(settings.db_url).connect() as conn:
         row = conn.execute(select(tracker)).one()
     assert (row.status, row.reason) == ("dismissed", "location")
     assert client.post("/triage", data={"job_ids": job_id, "status": "bogus"}).status_code == 400
+
+
+def test_detail_nest_explore_sources_render(
+    client: TestClient, make_job: Callable[..., Job]
+) -> None:
+    job_id = make_job().job_id
+    detail = client.get(f"/jobs/{job_id}/detail")
+    assert detail.status_code == 200
+    assert "Open posting" in detail.text
+    assert client.get("/jobs/nope/detail").status_code == 404
+
+    client.post("/triage", data={"job_ids": job_id, "status": "shortlisted"})
+    nest = client.get("/nest")
+    assert nest.status_code == 200
+    assert f'data-id="{job_id}"' in nest.text
+    assert client.post(f"/nest/{job_id}", data={"status": "applied", "note": "ref asked"}).json()[
+        "ok"
+    ]
+    assert "ref asked" in client.get(f"/nest/{job_id}/drawer").text
+    assert client.post(f"/nest/{job_id}", data={"status": "bogus"}).status_code == 400
+
+    assert "Senior Data Engineer" in client.get("/explore?q=data").text
+    assert "acme" in client.get("/sources").text
+    assert client.get("/static/app.css").status_code == 200
 
 
 def test_health_endpoint(client: TestClient) -> None:

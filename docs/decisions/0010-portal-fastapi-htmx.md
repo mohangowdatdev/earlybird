@@ -22,3 +22,7 @@ Build the portal with **FastAPI + Jinja templates + HTMX**: server-rendered HTML
 - **Streamlit:** fastest to prototype, worst for high-volume triage.
 - **NiceGUI/Reflex:** heavier abstractions with less control.
 - **SPA (React):** needs a JS build and toolchain.
+
+## Update (2026-10-18)
+
+The "tiny CSS framework (e.g. Pico)" consequence was replaced by a small hand-written design system (tokens + components, no build step), because Pico's defaults didn't give a polished dashboard. The decision itself (FastAPI + Jinja + HTMX, server-rendered, no frontend build) is unchanged. See [portal.md](../portal.md#design-system).

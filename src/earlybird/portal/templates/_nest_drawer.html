@@ -1,0 +1,30 @@
+{% import "_icons.html" as ic %}
+{% set j = card.job %}
+<div class="drawer-head">
+  {{ ic.logo(j.company_name) }}
+  <div style="min-width:0;flex:1"><div style="font-weight:700;line-height:1.3">{{ j.title }}</div><div class="muted" style="font-size:13px">{{ j.company_name }}</div></div>
+  <button class="btn icon ghost" data-close-drawer aria-label="Close">{{ ic.icon("x") }}</button>
+</div>
+<div style="padding:18px" class="stack">
+  <div class="field">
+    <label for="stage">Stage</label>
+    <select class="select" id="stage" data-move="{{ j.job_id }}">
+      {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == card.status }}>{{ status_labels[s] }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="chips">
+    {{ ic.remote_chip(j.remote_type) }}
+    {% if yoe_label(j) %}<span class="chip">{{ ic.icon("briefcase") }}{{ yoe_label(j) }}</span>{% endif %}
+    {% for loc in j.locations[:2] %}<span class="chip">{{ ic.icon("pin") }}{{ loc }}</span>{% endfor %}
+  </div>
+  {% if j.stack %}<div class="chips">{% for t in j.stack[:10] %}<span class="chip {{ 'brand' if t in card.score.skill_hits }}">{{ t }}</span>{% endfor %}</div>{% endif %}
+  <div class="field">
+    <label for="note">Notes</label>
+    <span class="hint">CV tailored? Who can refer you? Message sent? Interview dates?</span>
+    <textarea class="input" id="note" rows="6" placeholder="e.g. Tailored CV for Spark + Airflow. Asked Priya (ex-colleague) for a referral on Mon.">{{ card.extra.note or "" }}</textarea>
+  </div>
+  <div class="row">
+    <button class="btn primary" data-save-note="{{ j.job_id }}">{{ ic.icon("check") }} Save note</button>
+    <a class="btn" href="{{ j.url }}" target="_blank" rel="noopener">{{ ic.icon("external") }} Open posting</a>
+  </div>
+</div>

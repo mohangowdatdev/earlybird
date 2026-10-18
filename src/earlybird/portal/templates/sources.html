@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "_icons.html" as ic %}
+{% block title %}Sources{% endblock %}
+{% block heading %}Sources{% endblock %}
+{% block subheading %}Where your jobs come from, and whether each source is healthy{% endblock %}
+{% block topbar_actions %}<button class="btn primary sm hide-sm" data-sync>{{ ic.icon("refresh", "i sm") }} Sync now</button>{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="source-cards">
+    {% for s in report.sources %}{% set runs = history.get(s.source, []) %}
+    <article class="card source-card">
+      <div class="sc-head">
+        <span class="dot {{ 'error' if 'error' in s.flags else ('warn' if s.flags else '') }}"></span>
+        <h3>{{ source_label(s.source) }}</h3>
+        <span class="spacer"></span>
+        {% if s.flags %}{% for f in s.flags %}<span class="chip {{ 'danger' if f == 'error' else 'warn' }}">{{ f | replace("_", " ") }}</span>{% endfor %}{% else %}<span class="chip strong">{{ ic.icon("check") }} Healthy</span>{% endif %}
+      </div>
+      <div class="sc-num">{{ "{:,}".format(s.jobs_found) }} <span class="muted" style="font-size:13px;font-weight:550;letter-spacing:0">jobs last run</span></div>
+      {% if runs | length >= 3 %}{% set pts = sparkline(runs | map(attribute='jobs_found') | list, 240, 44) %}
+      <svg class="spark" viewBox="0 0 240 44" preserveAspectRatio="none"><polygon class="area" points="0,44 {{ pts }} 240,44"/><polyline points="{{ pts }}"/></svg>
+      {% else %}<div class="spark-wait">{{ ic.icon("trending", "i sm") }} Trend appears after a few runs</div>{% endif %}
+      <div class="sc-meta"><span>Last run {{ ago(s.last_run_at, now) }}</span><span>{% if s.companies_total > 1 %}{{ s.companies_total - s.companies_failed }}/{{ s.companies_total }} companies ok{% else %}{{ runs | length }} runs{% endif %}</span></div>
+    </article>
+    {% else %}
+    <div class="card empty"><div class="em-ic">{{ ic.icon("activity") }}</div><h3>No source runs yet</h3><p>Sync the public dataset to see source health.</p><button class="btn primary" data-sync>{{ ic.icon("refresh") }} Sync now</button></div>
+    {% endfor %}
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <h3>Company registry</h3><span class="chip">{{ companies | length }} tracked</span>
+      {% if report.dead_slugs %}<span class="chip danger">{{ report.dead_slugs | length }} dead link{{ "s" if report.dead_slugs | length != 1 }}</span>{% endif %}
+      <div class="input-icon more" style="width:240px">{{ ic.icon("search", "i sm") }}<input class="input sm" placeholder="Filter companies…" data-filter-table="#companies tbody tr" data-search></div>
+    </div>
+    <div class="card-body table-wrap">
+      <table class="table" id="companies">
+        <thead><tr><th>Company</th><th>ATS</th><th>Status</th><th class="num">Open jobs</th><th>Checked</th></tr></thead>
+        <tbody>
+          {% for c in companies %}
+          <tr>
+            <td><div class="row">{{ ic.logo(names.get(c.company_slug, c.company_slug)) }}<div><b>{{ names.get(c.company_slug, c.company_slug) }}</b><div class="muted mono" style="font-size:11.5px">{{ c.company_slug }}</div></div></div></td>
+            <td>{{ source_label(c.source) }}</td>
+            <td>{% if c.status == 'ok' %}<span class="chip strong">ok</span>{% elif c.status == 'not_found' %}<span class="chip danger" title="The ATS says this board doesn't exist">dead link</span>{% else %}<span class="chip warn" title="{{ c.error or '' }}">error ×{{ c.consecutive_failures }}</span>{% endif %}</td>
+            <td class="num">{{ c.open_jobs }}</td>
+            <td class="muted nowrap">{{ ago(c.last_checked_at, now) }}</td>
+          </tr>
+          {% else %}<tr><td colspan="5" class="muted">No companies yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

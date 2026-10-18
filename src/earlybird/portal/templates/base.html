@@ -1,50 +1,87 @@
+{%- import "_icons.html" as ic -%}
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Earlybird{% endblock %}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
-  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-  <style>
-    :root { --pico-font-size: 15px; --eb-strong: #1a7f37; --eb-maybe: #9a6700; --eb-muted: #6e7781; }
-    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --eb-muted: #8b949e; } }
-    nav.top { border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 1rem; }
-    .banner { padding: .6rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: .9rem; }
-    .banner.ok { background: #dafbe1; color: #116329; }
-    .banner.warn { background: #fff8c5; color: #7d4e00; }
-    .card { padding: .8rem 1rem; margin-bottom: .6rem; border-left: 4px solid transparent; }
-    .card.strong { border-left-color: var(--eb-strong); }
-    .card.maybe { border-left-color: var(--eb-maybe); }
-    .card.active { outline: 2px solid var(--pico-primary); }
-    .card h4 { margin: 0 0 .2rem; font-size: 1.05rem; }
-    .meta { color: var(--eb-muted); font-size: .85rem; margin: 0; }
-    .score { float: right; font-weight: 700; }
-    .score.strong { color: var(--eb-strong); } .score.maybe { color: var(--eb-maybe); }
-    .badge { font-size: .7rem; padding: .05rem .4rem; border-radius: 4px; background: var(--pico-primary-background); color: var(--pico-primary-inverse); margin-left: .4rem; vertical-align: middle; }
-    .actions { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; }
-    .actions button, .actions a[role=button] { padding: .2rem .6rem; font-size: .8rem; margin: 0; }
-    .reasons { display: none; gap: .3rem; flex-wrap: wrap; }
-    .card.dismissing .reasons { display: flex; }
-    kbd { font-size: .7rem; }
-    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-    .muted { color: var(--eb-muted); }
-    .tags span { font-size: .75rem; background: var(--pico-secondary-background); color: var(--pico-secondary-inverse); padding: 0 .35rem; border-radius: 4px; margin-right: .25rem; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffc21a">
+  <title>{% block title %}Earlybird{% endblock %} · Earlybird</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23ffc21a'/%3E%3Cpath d='M9 21a7 7 0 0 1 14 0' fill='none' stroke='%232a2000' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M16 7v5M7 23h18' stroke='%232a2000' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/static/app.css">
+  <script>try{var t=localStorage.getItem("eb-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
-<nav class="top container">
-  <ul><li><strong>🐦 Earlybird</strong></li></ul>
-  <ul>
-    <li><a href="/dawn">Dawn</a></li>
-    <li><a href="/nest">Nest</a></li>
-    <li><a href="/jobs">All jobs</a></li>
-    <li><a href="/profile">Profile</a></li>
-  </ul>
-</nav>
-<main class="container">
-{% block content %}{% endblock %}
-</main>
-{% block scripts %}{% endblock %}
+<div class="app">
+  <aside class="sidebar" aria-label="Main navigation">
+    <a class="brand" href="/">
+      <div class="brand-mark">{{ ic.icon("sunrise") }}</div>
+      <div class="brand-text"><div class="brand-name">Earlybird</div><div class="brand-tag">The early bird gets the job</div></div>
+    </a>
+    <nav class="nav">
+      <div class="nav-label">Today</div>
+      <a href="/" class="{{ 'active' if nav == 'overview' }}" title="Overview">{{ ic.icon("home") }}<span class="lbl">Overview</span></a>
+      <a href="/dawn" class="{{ 'active' if nav == 'dawn' }}" title="Dawn">{{ ic.icon("sunrise") }}<span class="lbl">Dawn</span>{% if nav_counts.dawn %}<span class="count">{{ nav_counts.dawn }}</span>{% endif %}</a>
+      <a href="/nest" class="{{ 'active' if nav == 'nest' }}" title="Nest">{{ ic.icon("kanban") }}<span class="lbl">Nest</span>{% if nav_counts.nest %}<span class="count">{{ nav_counts.nest }}</span>{% endif %}</a>
+      <div class="nav-label">Discover</div>
+      <a href="/explore" class="{{ 'active' if nav == 'explore' }}" title="Explore">{{ ic.icon("search") }}<span class="lbl">Explore</span></a>
+      <a href="/sources" class="{{ 'active' if nav == 'sources' }}" title="Sources">{{ ic.icon("activity") }}<span class="lbl">Sources</span>{% if report.problems %}<span class="count" style="background:var(--warn-soft);color:var(--warn)">{{ report.problems | length }}</span>{% endif %}</a>
+      <a href="/profile" class="{{ 'active' if nav == 'profile' }}" title="Profile">{{ ic.icon("user") }}<span class="lbl">Profile</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="avatar">{{ (profile_name or "You")[:1] | upper }}</div>
+      <div class="who">{{ profile_name or "Your profile" }}<small>Private · on this laptop</small></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <span class="sub">{% block subheading %}{% endblock %}</span>
+      <div class="topbar-actions">
+        {% block topbar_actions %}{% endblock %}
+        <span class="pill hide-sm" title="{{ 'Last synced ' ~ last_sync.strftime('%d %b %H:%M UTC') if last_sync else 'Never synced' }}">
+          <span class="dot {{ 'warn' if sync_stale else ('error' if report.problems else '') }}"></span>
+          {% if last_sync %}Synced {{ ago(last_sync, now) }}{% else %}Not synced yet{% endif %}
+        </span>
+        <button class="btn icon ghost" data-sync title="Sync now" aria-label="Sync now">{{ ic.icon("refresh") }}</button>
+        <button class="btn icon ghost hide-sm" data-open-modal="shortcuts" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">{{ ic.icon("keyboard") }}</button>
+        <button class="btn icon ghost" data-theme-toggle title="Toggle theme" aria-label="Toggle theme">{{ ic.icon("moon") }}</button>
+      </div>
+    </header>
+    <main class="content {% block content_class %}{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="overlay" data-overlay-for="shortcuts" hidden></div>
+<div class="modal" id="shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" hidden>
+  <h3 id="shortcuts-title">{{ ic.icon("keyboard") }} Keyboard shortcuts<button class="btn icon ghost sm" style="margin-left:auto" data-close-modal aria-label="Close">{{ ic.icon("x") }}</button></h3>
+  <p class="section-title">Dawn triage</p>
+  <div class="shortcuts">
+    <div>Next / previous <span><span class="kbd">j</span> <span class="kbd">k</span></span></div>
+    <div>Open posting <span class="kbd">o</span></div>
+    <div>Save to Nest <span class="kbd">s</span></div>
+    <div>Shortlist <span class="kbd">l</span></div>
+    <div>Mark applied <span class="kbd">a</span></div>
+    <div>Dismiss, then reason <span><span class="kbd">d</span> <span class="kbd">1–6</span></span></div>
+  </div>
+  <p class="section-title" style="margin-top:16px">Anywhere</p>
+  <div class="shortcuts">
+    <div>Go to Overview / Dawn <span><span class="kbd">g</span> <span class="kbd">o</span>/<span class="kbd">d</span></span></div>
+    <div>Go to Nest / Explore <span><span class="kbd">g</span> <span class="kbd">n</span>/<span class="kbd">e</span></span></div>
+    <div>Focus search <span class="kbd">/</span></div>
+    <div>This help <span class="kbd">?</span></div>
+    <div>Save profile <span><span class="kbd">⌘</span> <span class="kbd">s</span></span></div>
+    <div>Close <span class="kbd">esc</span></div>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+{{ ic.templates() }}
 </body>
 </html>

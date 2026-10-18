@@ -1,0 +1,65 @@
+{% import "_icons.html" as ic %}
+{% set j = card.job %}{% set s = card.score %}
+<div class="detail-inner">
+  <div class="detail-head">
+    {{ ic.logo(j.company_name, "logo lg") }}
+    <div style="min-width:0;flex:1">
+      <h2>{{ j.title }}</h2>
+      <div class="co">{{ j.company_name }}{% if j.department %}<span class="muted">· {{ j.department }}</span>{% endif %}{% if s.watchlist %}<span class="chip brand">{{ ic.icon("star") }} Perch</span>{% endif %}{% if card.status and card.status not in ('new','seen') %}<span class="chip">{{ status_labels[card.status] }}</span>{% endif %}</div>
+    </div>
+    <button class="btn icon ghost" data-close-sheet aria-label="Close" style="display:none" onclick="this.closest('.detail').classList.remove('open');document.getElementById('sheet-backdrop').hidden=true">{{ ic.icon("x") }}</button>
+  </div>
+
+  <div class="chips" style="margin-top:14px">
+    {{ ic.remote_chip(j.remote_type) }}
+    {% if yoe_label(j) %}<span class="chip">{{ ic.icon("briefcase") }}{{ yoe_label(j) }}</span>{% endif %}
+    {% if j.seniority != 'unknown' %}<span class="chip">{{ ic.icon("layers") }}{{ seniority_labels[j.seniority] }}</span>{% endif %}
+    {% if j.salary_max %}<span class="chip strong">{{ ic.icon("dollar") }}{{ j.salary_currency or "" }} {{ "{:,.0f}".format(j.salary_min or j.salary_max) }}{% if j.salary_min and j.salary_max and j.salary_max != j.salary_min %}–{{ "{:,.0f}".format(j.salary_max) }}{% endif %}{% if j.salary_period %} / {{ j.salary_period }}{% endif %}</span>{% endif %}
+    {% for loc in j.locations[:3] %}<span class="chip">{{ ic.icon("pin") }}{{ loc }}</span>{% endfor %}
+    {% if j.locations | length > 3 %}<span class="chip">+{{ j.locations | length - 3 }} more</span>{% endif %}
+  </div>
+
+  <div class="why">
+    <div class="why-head">
+      {{ ic.score(card) }}
+      <div><div style="font-weight:680">{% if s.watchlist %}On your watchlist{% else %}{{ s.bucket.value | capitalize }} match{% endif %}</div>
+      <div class="muted" style="font-size:12.5px">{% if s.excluded_reason %}Excluded: {{ s.excluded_reason | replace("title:", "title contains “") }}{{ "”" if "title:" in s.excluded_reason }}{% elif "kept:unknowns" in s.reasons %}Kept because key facts are unknown (fail-open){% else %}Why it scored {{ s.value }}{% endif %}</div></div>
+    </div>
+    {% if s.parts %}
+    <div class="bars">
+      {% for name, value in s.parts.items() %}
+      <div class="bar-row"><span style="text-transform:capitalize">{{ name }}</span><span class="track"><i style="width: {{ (value / part_max[name] * 100) | round }}%"></i></span><b>{{ value }}/{{ part_max[name] }}</b></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if s.skill_hits %}<div class="chips" style="margin-top:12px">{% for k in s.skill_hits %}<span class="chip strong">{{ ic.icon("check") }}{{ k }}</span>{% endfor %}</div>{% endif %}
+  </div>
+
+  {% if j.stack %}
+  <div class="detail-section"><div class="section-title">Stack mentioned</div>
+    <div class="chips">{% for t in j.stack %}<span class="chip {{ 'brand' if t in s.skill_hits }}">{{ t }}</span>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  <div class="detail-section facts">
+    <div class="fact"><small>First seen</small><b>{{ ago(j.first_seen_at, now) }}</b></div>
+    <div class="fact"><small>Posted</small><b>{{ j.posted_at.strftime("%d %b") if j.posted_at else "Not stated" }}</b></div>
+    <div class="fact"><small>Employment</small><b>{{ j.employment_type or "Not stated" }}</b></div>
+    <div class="fact sources-list"><small>Seen on</small><b>{% for src, url in card.sources %}<a href="{{ url }}" target="_blank" rel="noopener">{{ source_label(src) }}{{ ic.icon("external", "i sm") }}</a>{% if not loop.last %}<br>{% endif %}{% endfor %}</b></div>
+  </div>
+  {% if card.extra.note %}<div class="detail-section"><div class="section-title">{{ ic.icon("note", "i sm") }} Your note</div><p class="muted">{{ card.extra.note }}</p></div>{% endif %}
+</div>
+
+<div class="actionbar">
+  <a class="btn primary" href="{{ j.url }}" target="_blank" rel="noopener">{{ ic.icon("external") }} Open posting <span class="kbd">o</span></a>
+  <span class="spacer"></span>
+  <button class="btn" data-triage="saved">{{ ic.icon("bookmark") }} Save <span class="kbd">s</span></button>
+  <button class="btn" data-triage="shortlisted">{{ ic.icon("target") }} Shortlist <span class="kbd">l</span></button>
+  <button class="btn strong" data-triage="applied">{{ ic.icon("send") }} Applied <span class="kbd">a</span></button>
+  <button class="btn danger" data-reasons-toggle>{{ ic.icon("x") }} Dismiss <span class="kbd">d</span></button>
+  <div class="reason-menu" id="reason-menu" hidden>
+    <p>Why not? One word teaches the filters</p>
+    {% for r in reasons %}<button data-triage="dismissed" data-reason="{{ r }}" data-key="{{ loop.index }}"><span class="kbd">{{ loop.index }}</span>{{ r }}</button>{% endfor %}
+  </div>
+</div>
+<style>@media (max-width:1180px){[data-close-sheet]{display:inline-flex!important}}</style>

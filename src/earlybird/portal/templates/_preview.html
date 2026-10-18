@@ -1,0 +1,23 @@
+{% import "_icons.html" as ic %}
+{% if errors %}
+<div class="banner error">{{ ic.icon("alert") }}<div class="grow">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div></div>
+{% else %}
+<p class="muted" style="font-size:12.5px">Scoring the {{ "{:,}".format(total) }} untriaged jobs from the last {{ days }} days:</p>
+<div class="preview-counts">
+  <div class="strong"><b>{{ counts.strong }}</b><span>Strong</span></div>
+  <div class="maybe"><b>{{ counts.maybe }}</b><span>Maybe</span></div>
+  <div class="excluded"><b>{{ counts.excluded }}</b><span>Excluded</span></div>
+</div>
+{% if top %}
+<div class="preview-top">
+<div class="section-title">Top of your Dawn</div>
+{% for card in top %}{% set j = card.job %}
+<div class="list-row">{{ ic.score(card) }}<div class="grow"><div class="t">{{ j.title }}</div><div class="s">{{ j.company_name }} · {{ remote_label(j.remote_type) }}</div></div></div>
+{% endfor %}
+</div>
+{% elif total %}
+<p class="muted">No matches yet. Try adding role families or accepting more work arrangements.</p>
+{% else %}
+<p class="muted">No jobs synced yet. Use the sync button at the top.</p>
+{% endif %}
+{% endif %}

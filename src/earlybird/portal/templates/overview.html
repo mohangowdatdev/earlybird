@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "_icons.html" as ic %}
+{% block title %}Overview{% endblock %}
+{% block heading %}Overview{% endblock %}
+{% block subheading %}{{ now.strftime("%A, %d %B") }}{% endblock %}
+{% block content %}
+<div class="grid">
+  {% if sync_stale or report.problems %}
+  <div class="banner warn">{{ ic.icon("alert") }}
+    <div class="grow">
+      {% if sync_stale %}<b>Your data may be stale.</b> {% if last_sync %}Last sync was {{ ago(last_sync, now) }}.{% else %}You haven't synced yet.{% endif %}{% endif %}
+      {% for s in report.problems %}<div><b class="nowrap">{{ source_label(s.source) }}</b>: {{ s.flags | join(", ") | replace("_", " ") }}</div>{% endfor %}
+    </div>
+    <button class="btn sm" data-sync>{{ ic.icon("refresh", "i sm") }} Sync now</button>
+  </div>
+  {% endif %}
+
+  <section class="hero">
+    <div style="position:relative;z-index:1">
+      <h2>Good {{ greeting }}{% if profile.name %}, {{ profile.name.split()[0] }}{% endif %}.</h2>
+      <p>{% if strong or maybe_count %}{{ fresh }} new since your last visit. Clear your Dawn queue, then put real effort into the best three.{% else %}Nothing waiting. A quiet morning is a good morning.{% endif %}</p>
+      <div class="hero-stats">
+        <div><b>{{ strong | length }}</b><span>Strong matches</span></div>
+        <div><b>{{ maybe_count }}</b><span>Maybe</span></div>
+        <div><b>{{ report.open_jobs | default(0) }}</b><span>Open jobs tracked</span></div>
+      </div>
+    </div>
+    <div class="cta"><a class="btn lg dark" href="/dawn">{{ ic.icon("sunrise") }} Start triage <span class="kbd">g d</span></a></div>
+  </section>
+
+  <section class="kpis">
+    <div class="card kpi"><div class="k-label"><span class="k-ic">{{ ic.icon("bookmark") }}</span>Saved</div><div class="k-value">{{ counts.get("saved", 0) }}</div><div class="k-sub">waiting for a decision</div></div>
+    <div class="card kpi"><div class="k-label"><span class="k-ic">{{ ic.icon("target") }}</span>Shortlisted</div><div class="k-value">{{ counts.get("shortlisted", 0) }}</div><div class="k-sub">aim for 3–5 at a time</div></div>
+    <div class="card kpi"><div class="k-label"><span class="k-ic">{{ ic.icon("send") }}</span>Applied this week</div><div class="k-value">{{ applied_week }}</div><div class="k-sub">{{ counts.get("applied", 0) }} applied in total</div></div>
+    <div class="card kpi"><div class="k-label"><span class="k-ic">{{ ic.icon("sparkles") }}</span>Interviewing</div><div class="k-value">{{ counts.get("interviewing", 0) }}</div><div class="k-sub">{{ counts.get("offer", 0) }} offer{{ "s" if counts.get("offer", 0) != 1 }}</div></div>
+  </section>
+
+  <div class="overview-grid">
+    <div class="grid">
+      <section class="card">
+        <div class="card-head"><h3>Top matches today</h3><a class="more" href="/dawn">Open Dawn {{ ic.icon("chevron-right", "i sm") }}</a></div>
+        <div class="card-body">
+          {% for card in top %}{% set j = card.job %}
+          <a class="list-row" href="/dawn">
+            {{ ic.score(card) }}
+            <div class="grow"><div class="t">{{ j.title }}</div><div class="s">{{ j.company_name }} · {{ remote_label(j.remote_type) }}{% if yoe_label(j) %} · {{ yoe_label(j) }}{% endif %}</div></div>
+            <span class="muted nowrap" style="font-size:12px">{{ ago(j.first_seen_at, now) }}</span>
+          </a>
+          {% else %}
+          <div class="empty" style="padding:28px 12px"><div class="em-ic">{{ ic.icon("sunrise") }}</div><h3>All clear</h3><p>No untriaged matches in your Dawn window.</p></div>
+          {% endfor %}
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3>Recent activity</h3><a class="more" href="/nest">Open Nest {{ ic.icon("chevron-right", "i sm") }}</a></div>
+        <div class="card-body">
+          {% for a in activity %}
+          <div class="list-row">
+            {{ ic.logo(a.company_name) }}
+            <div class="grow"><div class="t">{{ a.title }}</div><div class="s">{{ a.company_name }}</div></div>
+            <span class="chip {{ 'strong' if a.status in ('applied','interviewing','offer') else ('excluded' if a.status in ('dismissed','rejected') else 'brand') }}">{{ status_labels[a.status] }}{% if a.reason %} · {{ a.reason }}{% endif %}</span>
+            <span class="muted nowrap hide-sm" style="font-size:12px">{{ ago(a.updated_at, now) }}</span>
+          </div>
+          {% else %}<p class="muted">Nothing yet. Your saves, applications and dismissals will show up here.</p>{% endfor %}
+        </div>
+      </section>
+    </div>
+    <div class="grid" style="align-content:start">
+      <section class="card">
+        <div class="card-head"><h3>Source health</h3><a class="more" href="/sources">Details {{ ic.icon("chevron-right", "i sm") }}</a></div>
+        <div class="card-body">
+          {% for s in report.sources %}{% set runs = history.get(s.source, []) %}
+          <div class="health-row">
+            <span class="dot {{ 'error' if 'error' in s.flags else ('warn' if s.flags else '') }}"></span>
+            <div><div class="name">{{ source_label(s.source) }}</div><div class="meta">{{ ago(s.last_run_at, now) }}{% if s.flags %} · {{ s.flags | join(", ") | replace("_", " ") }}{% endif %}</div></div>
+            <span class="num">{{ "{:,}".format(s.jobs_found) }}</span>
+            {% if runs | length >= 3 %}<svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none"><polyline points="{{ sparkline(runs | map(attribute='jobs_found') | list) }}"/></svg>{% else %}<span class="muted" style="font-size:11.5px;text-align:right">{{ runs | length }} run{{ "s" if runs | length != 1 }}</span>{% endif %}
+          </div>
+          {% else %}<p class="muted">No source runs yet. Press <b>Sync now</b> to pull the dataset.</p>{% endfor %}
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3>Application pipeline</h3></div>
+        <div class="card-body funnel">
+          {% set peak = (pipeline | map(attribute=1) | max) or 1 %}
+          {% for status, n in pipeline %}
+          <div class="funnel-row"><span>{{ status_labels[status] }}</span><span class="bar"><i style="width: {{ (n / peak * 100) | round }}%"></i></span><b>{{ n }}</b></div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -2,11 +2,31 @@
 
 > Last updated: 2026-10-18 · Related: [operations: daily routine](operations.md#daily-and-weekly-routine) · [matching](matching.md) · [coverage](coverage.md) · ADR [0010](decisions/0010-portal-fastapi-htmx.md)
 
-**Design principle:** the portal is for **triage**; applying is the real work. Every screen should end in a decision. There is no infinite scroll and no "browse everything" as the default. A morning session should finish with Dawn empty, in about 15 minutes.
+**Design principle:** the portal is for **triage**; applying is the real work.
+
+## Pages and workflow
+
+| Page | Job | Key interactions |
+| --- | --- | --- |
+| **Overview** (`/`) | The morning briefing | Greeting, a start-triage call to action, strong/maybe counts, saved/shortlisted/applied/interviewing tiles, top matches, source health with trend lines, pipeline bars, recent activity |
+| **Dawn** (`/dawn`) | Clear the queue | Two panes on desktop: the queue on the left, details on the right. On phones the details open as a bottom sheet. Tabs: Queue / Strong / Maybe / Excluded. Keyboard triage. Each action animates the job out, auto-selects the next one, and shows an Undo toast. |
+| **Nest** (`/nest`) | Turn the best jobs into real applications | A drag-and-drop board (saved → shortlisted → applied → interviewing → offer / rejected). A drawer per job holds the stage and notes. On phones the columns swipe. |
+| **Explore** (`/explore`) | Look things up | Search and filters across every open job, paginated, with save and open buttons |
+| **Sources** (`/sources`) | Trust the data | A health card per source with run trends, and a searchable company registry with dead links flagged |
+| **Profile** (`/profile`) | Define "good" | The profile builder below, with a live preview |
+
+Flow: **Overview → Dawn (clear the queue) → Nest (shortlist 3–5, apply properly)**, with Profile and Sources as the supporting pages. Global shortcuts: `g` then `o/d/n/e/s/p` jumps to a page, `/` searches, `?` shows the shortcut help.
+
+## Design system
+
+- **Look:** a warm sunrise-yellow brand (`#FFC21A`) on soft warm neutrals, with green for strong, indigo for maybe and stone for excluded. Light and dark themes follow the system setting, with a manual toggle that's remembered. Font: Inter.
+- **Code:** hand-written CSS tokens and components (`portal/static/app.css`) plus vanilla JS (`app.js`), with htmx vendored locally. There is no build step and no CDN dependency except the font.
+- **Components:** tag inputs with autocomplete and quick-add, option cards, toggle pills, a range slider, steppers, segmented tabs, toasts with undo, a drawer, a bottom sheet, and a modal.
+- **Layouts:** a sidebar from 960px up, an icon rail between 720 and 960px, and a bottom tab bar below 720px. Verified at 1440px and 390px, in both themes, plus an automated interaction run (Playwright on Chrome). Every screen should end in a decision. There is no infinite scroll and no "browse everything" as the default. A morning session should finish with Dawn empty, in about 15 minutes.
 
 ## Profile builder (`/profile`)
 
-The first visit goes straight here. It's a single validated form that writes `profile.yaml`:
+The first visit goes straight here. It's eight numbered sections with a **live preview** (strong/maybe/excluded counts and the top matches, recomputed as you edit) and a sticky save bar (`⌘S`). It writes `profile.yaml`:
 - name and years of experience
 - role families and must-have / nice-to-have skills (suggestions come from the stack dictionary)
 - accepted work arrangements and cities for hybrid/onsite

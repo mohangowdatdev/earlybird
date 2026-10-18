@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: [Keep a Changelog](https://keepac
 ## [Unreleased]
 
 ### Added
+- Portal redesign: sunrise-yellow design system (light/dark), adaptive layout (sidebar / rail / bottom tabs), Overview dashboard, two-pane Dawn with bottom sheet on mobile, drag-and-drop Nest with drawer, Explore, Sources with registry, rebuilt profile editor (tag inputs with autocomplete, option cards, live preview, sticky save bar), toasts with undo, keyboard shortcuts with help overlay, Sync-now button.
 - Public ingestion: Greenhouse, Lever, Ashby, RemoteOK, We Work Remotely adapters (verified, with real fixtures); Himalayas and Remotive on the private plane (ADR 0015).
 - Pipeline: normalize, canonical-key dedupe, rule-based extraction (remote type, YOE, seniority, stack, summary), job closing, health checks.
 - Publishing to the `data-latest` release with a privacy guard; `ingest.yml` every 2h, `keepalive.yml`, Dependabot.

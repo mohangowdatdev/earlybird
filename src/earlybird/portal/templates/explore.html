@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% import "_icons.html" as ic %}
+{% block title %}Explore{% endblock %}
+{% block heading %}Explore{% endblock %}
+{% block subheading %}Every open job, scored against your profile{% endblock %}
+{% block content %}
+<form class="card filterbar" method="get">
+  <div class="input-icon">{{ ic.icon("search", "i sm") }}<input class="input" name="q" placeholder="Search title or company…  ( / )" value="{{ filters.q }}" data-search autofocus></div>
+  <select class="select" name="bucket" onchange="this.form.submit()" style="width:auto">
+    <option value="">All matches</option>
+    {% for b in ("strong", "maybe", "excluded") %}<option value="{{ b }}" {{ 'selected' if filters.bucket == b }}>{{ b | capitalize }}</option>{% endfor %}
+  </select>
+  <select class="select" name="remote" onchange="this.form.submit()" style="width:auto">
+    <option value="">Any arrangement</option>
+    {% for r in remote_types %}<option value="{{ r.value }}" {{ 'selected' if filters.remote == r.value }}>{{ remote_label(r.value) }}</option>{% endfor %}
+  </select>
+  <select class="select" name="source" onchange="this.form.submit()" style="width:auto">
+    <option value="">All sources</option>
+    {% for s in report.sources %}<option value="{{ s.source }}" {{ 'selected' if filters.source == s.source }}>{{ source_label(s.source) }}</option>{% endfor %}
+  </select>
+  <button class="btn primary" type="submit">{{ ic.icon("filter", "i sm") }} Apply</button>
+</form>
+<p class="muted" style="margin:0 0 10px 4px">{{ "{:,}".format(total) }} result{{ "s" if total != 1 }}{% if filters.q %} for “{{ filters.q }}”{% endif %}</p>
+<div class="results">
+  {% for card in cards %}{% set j = card.job %}
+  <article class="card result">
+    {{ ic.score(card) }}
+    <div style="min-width:0">
+      <div class="t">{{ j.title }}</div>
+      <div class="s">{{ j.company_name }} · first seen {{ ago(j.first_seen_at, now) }}{% if card.status %} · <b>{{ status_labels[card.status] }}</b>{% endif %}</div>
+      <div class="chips">{{ ic.remote_chip(j.remote_type) }}{% if yoe_label(j) %}<span class="chip">{{ yoe_label(j) }}</span>{% endif %}{% for t in j.stack[:4] %}<span class="chip {{ 'brand' if t in card.score.skill_hits }}">{{ t }}</span>{% endfor %}</div>
+    </div>
+    <div class="row">
+      <button class="btn sm" onclick="fetch('/triage',{method:'POST',body:new URLSearchParams({job_ids:'{{ card.job_ids | join(',') }}',status:'saved'})}).then(r=>r.ok?ebToast('Saved to Nest'):ebToast('Could not save',{error:true}))">{{ ic.icon("bookmark", "i sm") }} Save</button>
+      <a class="btn sm primary" href="{{ j.url }}" target="_blank" rel="noopener">{{ ic.icon("external", "i sm") }} Open</a>
+    </div>
+  </article>
+  {% else %}
+  <div class="card empty"><div class="em-ic">{{ ic.icon("search") }}</div><h3>No jobs match</h3><p>Try a broader search, or clear the filters.</p><a class="btn" href="/explore">Clear filters</a></div>
+  {% endfor %}
+</div>
+{% if pages > 1 %}
+{% set qs = "q=" ~ (filters.q | urlencode) ~ "&bucket=" ~ filters.bucket ~ "&remote=" ~ filters.remote ~ "&source=" ~ filters.source %}
+<nav class="pager">
+  {% if page > 1 %}<a class="btn" href="?{{ qs }}&page={{ page - 1 }}">{{ ic.icon("chevron-left", "i sm") }} Previous</a>{% endif %}
+  <span class="muted">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="btn" href="?{{ qs }}&page={{ page + 1 }}">Next {{ ic.icon("chevron-right", "i sm") }}</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

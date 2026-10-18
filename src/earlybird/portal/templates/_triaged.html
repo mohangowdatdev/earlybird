@@ -1,4 +1,0 @@
-<article class="card triaged" tabindex="-1">
-  <p class="meta">{{ status }}{% if reason %} ({{ reason }}){% endif %} ·
-    <a href="#" hx-post="/triage" hx-vals='{"job_ids": "{{ job_ids }}", "status": "new"}' hx-target="closest article" hx-swap="outerHTML" onclick="setTimeout(() => location.reload(), 150)">undo</a></p>
-</article>

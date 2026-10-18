@@ -28,12 +28,18 @@ class Bucket(StrEnum):
     EXCLUDED = "excluded"
 
 
+# Maximum points per component, for showing the breakdown.
+PART_MAX = {"role": 4.0, "skills": 3.0, "experience": 1.5, "location": 1.5}
+
+
 class Score(BaseModel):
     value: float
     bucket: Bucket
     reasons: list[str] = Field(default_factory=list)
     excluded_reason: str | None = None
     watchlist: bool = False
+    parts: dict[str, float] = Field(default_factory=dict)
+    skill_hits: list[str] = Field(default_factory=list)
 
 
 def _tokens(text: str) -> set[str]:
@@ -155,4 +161,6 @@ def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
         bucket=bucket,
         reasons=reasons,
         excluded_reason="low_score" if bucket is Bucket.EXCLUDED else None,
+        parts={"role": role, "skills": skills, "experience": yoe, "location": location},
+        skill_hits=skill_hits,
     )

@@ -1,7 +1,0 @@
-{% extends "base.html" %}
-{% block title %}All jobs · Earlybird{% endblock %}
-{% block content %}
-<h2>All jobs</h2>
-<form method="get"><input name="q" placeholder="Search title or company…" value="{{ q }}" autofocus></form>
-{% for card in cards %}{% include "_card.html" %}{% else %}{% if q %}<p>No open jobs match “{{ q }}”.</p>{% endif %}{% endfor %}
-{% endblock %}

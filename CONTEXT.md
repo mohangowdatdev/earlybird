@@ -114,6 +114,8 @@ These need Mohan; Claude asks for them in batches when they come up.
 
 Newest first. Each entry is one line; link the ADR where there is one.
 
+- **2026-10-18:** The portal was redesigned (Mohan: "the UI sucks"): a yellow design system, light and dark themes, adaptive layouts, Overview/Dawn/Nest/Explore/Sources/Profile, a live profile preview, a drag-and-drop Nest, and keyboard triage with undo ([portal.md](docs/portal.md)).
+
 - **2026-10-18:** Phase 0b and most of Phase 1 built: the pipeline, 7 verified adapters, publish, sync, a portal with Dawn/Nest triage and a profile builder, `make up`/`down`, and the ingest workflow.
 - **2026-10-18:** Profile builder in the portal (Mohan's request). `profile.yaml` stays the source of truth, edited through a validated form.
 - **2026-10-18:** Rule scoring computed on the fly at read time (no stale scores). A persisted `scores` table arrives with LLM scoring.

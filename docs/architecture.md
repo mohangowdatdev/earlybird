@@ -27,7 +27,7 @@ flowchart TD
   NORM --> DEDUPE[Dedupe<br/>source+external_id, then canonical_key]
   DEDUPE --> ENRICH[Generic extraction<br/>rules: YOE, remote, stack, seniority]
   ENRICH --> HEALTH[Record adapter runs<br/>anomaly checks]
-  HEALTH --> PUB[Build dataset<br/>state.db.zst + jobs.json + health.json]
+  HEALTH --> PUB[Build dataset<br/>state.db.gz + jobs.json + health.json<br/>privacy guard]
   PUB --> REL[Upload to data-latest Release]
   REL --> SITE[site.yml: build Pages from artifact]
 ```
@@ -53,6 +53,10 @@ flowchart TD
   PORTAL --> FB[Save/dismiss feedback → scoring examples]
 ```
 
+## Terms-restricted sources
+
+Boards whose terms forbid redistribution (`PUBLIC_OK = False`: Himalayas, Remotive) are skipped by the public ingest. The laptop's scheduler fetches them straight into the local DB as `visibility=private` ([ADR 0015](decisions/0015-terms-restricted-sources-and-descriptions.md)).
+
 ## Components
 
 | Package | Responsibility |
@@ -67,6 +71,7 @@ flowchart TD
 | `private` | Sync, email ingestion, personal scoring, tracker, feedback |
 | `notify` | Chirp (Telegram) |
 | `portal` | FastAPI + HTMX local web app ([ADR 0010](decisions/0010-portal-fastapi-htmx.md)) |
+| `ingest.py` | Orchestrates one ingestion run: concurrent fetch, then normalize, extract, upsert, close and record runs |
 | `cli.py` | One `earlybird` command, used by Make, the Procfile and Actions alike |
 
 ## Local processes (Phase 0b onwards)
@@ -74,7 +79,7 @@ flowchart TD
 `make up` starts a `honcho` process group in the background (pidfile in `var/run/`, logs in `var/logs/`) from the `Procfile`:
 
 - `portal`: the web UI on `localhost:8765`
-- `scheduler`: periodic `sync → ingest-email → score → chirp`, once an hour while the laptop is awake
+- `scheduler`: once an hour while the laptop is awake: `sync` (public dataset), then fetch the private-only boards. Email ingestion and Chirp join in Phase 2.
 
 `make down` stops the group. Data lives in `var/` and survives both commands.
 
@@ -90,7 +95,7 @@ The private plane is configured only through environment variables (`EARLYBIRD_*
 | GitHub cron delayed or skipped | The dataset is late | `health.json` `generated_at` is older than 4h → stale banner in the portal | Usually self-heals; trigger manually with `gh workflow run ingest.yml` |
 | Cron disabled after 60 days of repo inactivity | Ingestion silently stops | Stale-dataset banner; `keepalive.yml` prevents it | Re-enable the workflow |
 | Release asset upload fails | The next run starts from older state; nothing lost except freshness | Workflow failure email | Re-run; uploads are idempotent |
-| Corrupt state snapshot | Dedupe history lost | Checksum mismatch on download | The previous snapshot is kept as `state.prev.db.zst` |
+| Corrupt state snapshot | Dedupe history lost | Checksum mismatch on download | The previous snapshot is kept as `state.prev.db.gz` |
 | Email parsing breaks (template change) | Email-derived jobs stop | Parser health check: 0 jobs parsed from N new emails | Update the parser with a saved fixture email |
 | LLM unavailable or over cap | Unknown facts stay unknown | Logged; counted in health | Fail open: jobs go to "maybe", never dropped |
 | Laptop asleep | No Chirp alerts, stale local data | n/a | Catches up on the next `make up` or sync |

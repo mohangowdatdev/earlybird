@@ -1,3 +1,417 @@
 # The company registry: the real coverage limit (docs/sources.md).
-# Seeded from Mohan's list in Phase 1. Validated against registry/schema.json by `make lint`.
-companies: []
+# Verified starter set (each slug returned HTTP 200 with at least one job on 2026-10-18),
+# pending Mohan's seed list in Phase 1. Validated against registry/schema.json by `make lint`.
+companies:
+  - slug: airbnb
+    name: Airbnb
+    ats:
+      - {type: greenhouse, id: airbnb}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: airbyte
+    name: Airbyte
+    ats:
+      - {type: ashby, id: airbyte}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: airtable
+    name: Airtable
+    ats:
+      - {type: greenhouse, id: airtable}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: anthropic
+    name: Anthropic
+    ats:
+      - {type: greenhouse, id: anthropic}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: brex
+    name: Brex
+    ats:
+      - {type: greenhouse, id: brex}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: clickhouse
+    name: ClickHouse
+    ats:
+      - {type: ashby, id: clickhouse}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: cloudflare
+    name: Cloudflare
+    ats:
+      - {type: greenhouse, id: cloudflare}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: cohere
+    name: Cohere
+    ats:
+      - {type: ashby, id: cohere}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: coinbase
+    name: Coinbase
+    ats:
+      - {type: greenhouse, id: coinbase}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: cred
+    name: CRED
+    ats:
+      - {type: lever, id: cred}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: databricks
+    name: Databricks
+    ats:
+      - {type: greenhouse, id: databricks}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: datadog
+    name: Datadog
+    ats:
+      - {type: greenhouse, id: datadog}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: discord
+    name: Discord
+    ats:
+      - {type: greenhouse, id: discord}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: dropbox
+    name: Dropbox
+    ats:
+      - {type: greenhouse, id: dropbox}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: elastic
+    name: Elastic
+    ats:
+      - {type: greenhouse, id: elastic}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: elevenlabs
+    name: ElevenLabs
+    ats:
+      - {type: ashby, id: elevenlabs}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: figma
+    name: Figma
+    ats:
+      - {type: greenhouse, id: figma}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: fivetran
+    name: Fivetran
+    ats:
+      - {type: greenhouse, id: fivetran}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: gitlab
+    name: GitLab
+    ats:
+      - {type: greenhouse, id: gitlab}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: grafana-labs
+    name: Grafana Labs
+    ats:
+      - {type: greenhouse, id: grafanalabs}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: gusto
+    name: Gusto
+    ats:
+      - {type: greenhouse, id: gusto}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: harvey
+    name: Harvey
+    ats:
+      - {type: ashby, id: harvey}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: hex
+    name: Hex
+    ats:
+      - {type: ashby, id: hex}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: inmobi
+    name: InMobi
+    ats:
+      - {type: greenhouse, id: inmobi}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: instacart
+    name: Instacart
+    ats:
+      - {type: greenhouse, id: instacart}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: langchain
+    name: LangChain
+    ats:
+      - {type: ashby, id: langchain}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: linear
+    name: Linear
+    ats:
+      - {type: ashby, id: linear}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: lyft
+    name: Lyft
+    ats:
+      - {type: greenhouse, id: lyft}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: meesho
+    name: Meesho
+    ats:
+      - {type: lever, id: meesho}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: mobileye
+    name: Mobileye
+    ats:
+      - {type: lever, id: mobileye, options: {region: eu}}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: modal
+    name: Modal
+    ats:
+      - {type: ashby, id: modal}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: mongodb
+    name: MongoDB
+    ats:
+      - {type: greenhouse, id: mongodb}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: netlify
+    name: Netlify
+    ats:
+      - {type: greenhouse, id: netlify}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: notion
+    name: Notion
+    ats:
+      - {type: ashby, id: notion}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: okta
+    name: Okta
+    ats:
+      - {type: greenhouse, id: okta}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: openai
+    name: OpenAI
+    ats:
+      - {type: ashby, id: openai}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: palantir
+    name: Palantir
+    ats:
+      - {type: lever, id: palantir}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: perplexity
+    name: Perplexity
+    ats:
+      - {type: ashby, id: perplexity}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: pinecone
+    name: Pinecone
+    ats:
+      - {type: ashby, id: pinecone}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: pinterest
+    name: Pinterest
+    ats:
+      - {type: greenhouse, id: pinterest}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: plaid
+    name: Plaid
+    ats:
+      - {type: ashby, id: plaid}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: posthog
+    name: PostHog
+    ats:
+      - {type: ashby, id: posthog}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: quantinuum
+    name: Quantinuum
+    ats:
+      - {type: lever, id: quantinuum, options: {region: eu}}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: ramp
+    name: Ramp
+    ats:
+      - {type: ashby, id: ramp}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: reddit
+    name: Reddit
+    ats:
+      - {type: greenhouse, id: reddit}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: replit
+    name: Replit
+    ats:
+      - {type: ashby, id: replit}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: robinhood
+    name: Robinhood
+    ats:
+      - {type: greenhouse, id: robinhood}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: samsara
+    name: Samsara
+    ats:
+      - {type: greenhouse, id: samsara}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: scale-ai
+    name: Scale AI
+    ats:
+      - {type: greenhouse, id: scaleai}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: sentry
+    name: Sentry
+    ats:
+      - {type: ashby, id: sentry}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: snowflake
+    name: Snowflake
+    ats:
+      - {type: ashby, id: snowflake}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: spotify
+    name: Spotify
+    ats:
+      - {type: lever, id: spotify}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: stripe
+    name: Stripe
+    ats:
+      - {type: greenhouse, id: stripe}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: supabase
+    name: Supabase
+    ats:
+      - {type: ashby, id: supabase}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: temporal
+    name: Temporal
+    ats:
+      - {type: ashby, id: temporal}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: twilio
+    name: Twilio
+    ats:
+      - {type: greenhouse, id: twilio}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: vercel
+    name: Vercel
+    ats:
+      - {type: greenhouse, id: vercel}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: zapier
+    name: Zapier
+    ats:
+      - {type: ashby, id: zapier}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"
+  - slug: zeta
+    name: Zeta
+    ats:
+      - {type: lever, id: zeta}
+    tags: [starter]
+    discovered_by: manual
+    added_at: "2026-10-18"

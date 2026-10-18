@@ -1,25 +1,20 @@
-# Copy to profile.yaml (gitignored) and edit. Everything personal lives here, never in code.
-# Schema finalised in Phase 2; see docs/matching.md.
-
+# Example profile. The easy way: run `make up` and use the profile builder at
+# http://127.0.0.1:8765/profile. It writes profile.yaml (gitignored) in this same shape.
 name: Example Person
-role_families:            # matched against titles
+yoe: 7                         # tolerance -1/+2 is applied automatically
+role_families:                 # matched against job titles
   - data engineer
   - analytics engineer
   - machine learning engineer
-  - ai engineer
-yoe: 7                    # tolerance -1/+2 applied automatically
-skills:                   # matched against descriptions
-  must: [python, sql, spark]
-  nice: [airflow, dbt, kafka, aws, gcp, llm]
-location:
-  country: IN
-  accept_remote: [remote_india_ok, remote_unspecified, unknown]
-  downrank_remote: [remote_restricted]
-  hybrid_cities: []       # e.g. [Bangalore]; empty = remote-only
-excludes:
-  title_patterns: [intern, new grad, director, vice president, "head of"]
-  functions: [sales, recruiting, legal]
-watchlist:                # Perch: always shown, bypass scoring
-  - example-company-slug
-chirp:
-  daily_cap: 5
+skills_must: [python, sql, spark]
+skills_nice: [airflow, dbt, kafka, aws, llm]
+remote_types:                  # accepted work arrangements
+  - remote_india_ok
+  - remote_unspecified
+  - unknown
+cities: []                     # hybrid/onsite acceptable cities, e.g. [bangalore, bengaluru]
+seniorities: []                # preferred levels (junior, mid, senior, staff_plus, ...); empty = any
+exclude_title_patterns: [intern, internship, new grad, director, vice president, vp, head of, chief, sales, recruiter]
+watchlist: []                  # Perch: company slugs from registry/companies.yaml
+min_salary_usd: null
+chirp_daily_cap: 5

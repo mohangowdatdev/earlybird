@@ -4,6 +4,8 @@
 
 Every adapter emits the same normalized `Job` model. **The company registry is the real coverage limit:** an ATS adapter only sees companies listed in [`registry/companies.yaml`](../registry/companies.yaml).
 
+**Public dataset:** each board declares `PUBLIC_OK`. Boards whose terms forbid redistribution (Himalayas, Remotive) are fetched **only on the private plane** (your laptop) and never published ([ADR 0015](decisions/0015-terms-restricted-sources-and-descriptions.md)).
+
 **Status legend:** `planned` → `verified` (endpoint shape checked against a live response and saved as a fixture) → `live` (running in Actions) → `broken` / `paused`.
 
 **Tiers:**
@@ -17,9 +19,9 @@ Every adapter emits the same normalized `Job` model. **The company registry is t
 
 | Source | Method | Endpoint (to verify) | Tier | Phase | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Greenhouse | GET JSON | `boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true` | T1 | 1 | planned | Official public Job Board API |
-| Lever | GET JSON | `api.lever.co/v0/postings/{slug}?mode=json` | T1 | 1 | planned | Official public postings API; EU tenants use `api.eu.lever.co` |
-| Ashby | GET JSON | `api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true` | T1 | 1 | planned | Official public posting API |
+| Greenhouse | GET JSON | `boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true` | T1 | 1 | verified | Verified 2026-10-18. No pagination (all jobs in one response, `meta.total`). `content` is entity-escaped HTML. `location.name` can join several places with `;` or `\|`; `offices[]` lists more. Dates: `first_published` and `updated_at`. No remote or salary field (some boards put a custom "Location Type" in `metadata`). Unknown slug: 404 |
+| Lever | GET JSON | `api.lever.co/v0/postings/{slug}?mode=json` | T1 | 1 | verified | Verified 2026-10-18 (US and EU). EU tenants use `api.eu.lever.co` (registry `options: {region: eu}`); the other host returns 404 for them. A bare JSON list, unpaginated unless `skip`/`limit` are passed. `workplaceType` (onsite / hybrid / remote seen), `categories.allLocations`, `createdAt` in epoch ms, optional `salaryRange` {min, max, currency, interval like `per-year-salary`}. Unknown slug: 404 |
+| Ashby | GET JSON | `api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true` | T1 | 1 | verified | Verified 2026-10-18. No pagination; `{apiVersion, jobs}`. `workplaceType` (OnSite / Hybrid / Remote / null) is the reliable remote signal: `isRemote` is also true for hybrid roles. `secondaryLocations[]`, `publishedAt`, `isListed`; `compensation.summaryComponents[]` gives Salary min/max/currency with an interval like `1 YEAR`. Unknown slug: 404; a real but empty board: 200 with `jobs: []` |
 | Workable | GET JSON | `apply.workable.com/api/v1/widget/accounts/{slug}` | T2 | 3 | planned | Widget API |
 | SmartRecruiters | GET JSON | `api.smartrecruiters.com/v1/companies/{slug}/postings` | T2 | 3 | planned | Public postings API, paginated |
 | Workday | POST JSON | `{tenant}.wd{n}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` | T2 | 3 | planned | Paginated POST per tenant; the registry needs tenant, wd number and site |
@@ -34,10 +36,10 @@ Every adapter emits the same normalized `Job` model. **The company registry is t
 
 | Source | Method | Endpoint (to verify) | Tier | Phase | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| RemoteOK | GET JSON | `remoteok.com/api` | T1 | 1 | planned | Terms require attribution and a link back; honour them on the public board |
-| Himalayas | GET JSON | `himalayas.app/jobs/api` | T1 | 1 | planned | Paginated |
-| We Work Remotely | GET RSS | `weworkremotely.com/categories/*.rss` | T1 | 1 | planned | Per-category feeds |
-| Remotive | GET JSON | `remotive.com/api/remote-jobs` | T2 | 1 | planned | Jobs are delayed and the call limit is low (a few per day); respect it |
+| RemoteOK | GET JSON | `remoteok.com/api` | T1 | 1 | verified | Verified 2026-10-18. One call returns ~100 newest jobs; element 0 is a legal notice, not a job. Terms: link back to the RemoteOK job URL (followed link, no `nofollow`) and name Remote OK as the source, no logo; honour on the public board. Most text is double-encoded UTF-8 (repaired in the adapter). `salary_min`/`max` are numbers, 0 = not stated; no currency or period given. robots.txt `Crawl-delay: 1`. |
+| Himalayas | GET JSON | `himalayas.app/jobs/api?limit=20&cursor=…` | T1 | 1 | verified | Verified 2026-10-18. Cursor pagination via `nextCursor` (`offset` is deprecated); `limit` max 20; we stop after 10 pages (~200 newest of ~128k jobs). Unkeyed calls share one public allowance (a free key gives 60/min, 10k/day); docs say data refreshes about daily, so the adapter runs at most every 6h. Terms: visible Himalayas credit with a link back, Apply must use `applicationLink`, and no redistribution to other job boards or aggregators (check against the public board). Live `pubDate` is epoch seconds and `locationRestrictions` are plain names, unlike the docs (ms, objects); both are accepted. Empty restrictions = worldwide. |
+| We Work Remotely | GET RSS | `weworkremotely.com/categories/{category}.rss` | T1 | 1 | verified | Verified 2026-10-18. We poll back-end, full-stack, front-end and devops-sysadmin feeds and dedupe by guid (feeds repeat items). `remote-jobs.rss` only carries the latest ~10 per category; data-science/ML feeds do not exist (301). Titles are `Company: Title`; `region` is usually "Anywhere in the World" and the flag-prefixed `country` list is the real restriction; `state` looks like HQ and is ignored. Feed `<ttl>` is 60 min. HTML pages (incl. terms) return 403 to non-browsers, so no written API terms were found. |
+| Remotive | GET JSON | `remotive.com/api/remote-jobs` | T2 | 1 | verified | Verified 2026-10-18. Free feed is small (12 jobs) and delayed 24h; the `category` filter returned the same 12 jobs, so we fetch all. Advised max 4 calls a day (adapter runs at most every 6h); more than 2 a minute are blocked. Terms: link back to the Remotive URL and name Remotive as the source; do not submit jobs to third-party sites (Google Jobs, LinkedIn Jobs, Jooble…). `salary` is free text, so not parsed. `publication_date` has no timezone (read as UTC). |
 
 ## Email ingestion (private plane only, never published)
 

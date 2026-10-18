@@ -34,10 +34,13 @@ cp profile.example.yaml profile.yaml
 | `make lint` | ruff, mypy, import-linter, registry schema check | now |
 | `make fmt` | Format and autofix | now |
 | `make test` | pytest (network blocked) | now |
-| `make up` | Start the portal and scheduler in the background (honcho; pidfile in `var/run/`) | Phase 0b |
-| `make down` | Stop everything; data persists in `var/` | Phase 0b |
-| `make logs` | Tail `var/logs/*.log` | Phase 0b |
-| `make sync` | Pull the latest public dataset into the local DB | Phase 1 |
+| `make db` | Create or migrate the local DB (`var/earlybird.db`) | now |
+| `make up` | Start the portal (http://127.0.0.1:8765) and scheduler in the background (honcho; pidfile in `var/run/`) | now |
+| `make down` | Stop everything; data persists in `var/` | now |
+| `make restart` / `make status` | Restart, or check whether it's running | now |
+| `make logs` | Follow `var/logs/earlybird.log` | now |
+| `make sync` | Pull the latest public dataset into the local DB | now |
+| `make ingest` | Run a full public ingestion locally into `var/state.db` (for debugging the public plane) | now |
 | `make reset` | **DANGEROUS.** Deletes `var/` (local DB, tracker, notes, logs). Asks you to type `earlybird` to confirm. | now |
 
 ## GitHub
@@ -52,6 +55,7 @@ cp profile.example.yaml profile.yaml
 | `ci.yml` | push, PR | lint, type-check, import contracts, tests, gitleaks | 0 |
 | `ingest.yml` | cron every 2h + manual | adapters → dataset → `data-latest` Release | 1 |
 | `site.yml` | after ingest + manual | build and deploy Pages from an artifact | 4 |
+| `dependabot.yml` | monthly | grouped update PRs for pinned actions and Python deps | 0 |
 | `keepalive.yml` | monthly cron | prevents GitHub from disabling cron after 60 days of inactivity | 1 |
 
 **Free-tier notes ([ADR 0012](decisions/0012-zero-cost-operation.md)):**
@@ -86,8 +90,8 @@ The whole dataset is flagged **stale** when `health.json.generated_at` is more t
 
 | Symptom | Check |
 | --- | --- |
-| Dawn is empty | Is `make up` running? Run `make logs`, then `earlybird health`, then check the age of the last sync. |
+| Dawn is empty | Is `make up` running? Run `make logs` and `uv run earlybird health`, and check the last sync time in the banner. Dawn only shows untriaged jobs first seen within `EARLYBIRD_DAWN_WINDOW_DAYS` (default 3). |
 | Stale-dataset banner | `gh run list -w ingest.yml`. Was it disabled or did it fail? Re-run with `gh workflow run ingest.yml`. |
-| A source shows 0 jobs | Run `earlybird ingest --source <name> --company <slug> --dry-run -v` and diff the payload against the fixture. |
+| A source shows 0 jobs | Run `uv run earlybird ingest --db var/debug.db --source <name> --company <slug>` and compare the live payload with the fixture in `tests/fixtures/<name>/`. |
 | Email jobs missing | Check the IMAP login (app password revoked?), the label name, and `earlybird email --dry-run -v`. |
 | Push rejected for workflow files | The token lacks the `workflow` scope: `gh auth switch -u mohangowdatdev && gh auth refresh -h github.com -s workflow; gh auth switch -u mohangowdat-sail` (gh only refreshes the active account) |

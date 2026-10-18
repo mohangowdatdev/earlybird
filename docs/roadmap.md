@@ -4,7 +4,7 @@
 
 ## Now
 
-**Phase 0, step 0a:** the docs set, skeleton and repo hygiene are written. **Waiting for Mohan's review.**
+**Phase 0 is built; Phase 1 is nearly done** (2026-10-18). Remaining for Phase 1: the first scheduled runs on GitHub, Mohan's seed companies, and 7 consecutive clean days. Phase 2 has started early: rule scoring, Dawn/Nest triage and the profile builder. **Waiting on:** Mohan's review, the seed list, and confirmation of [ADR 0015](decisions/0015-terms-restricted-sources-and-descriptions.md).
 
 ## Versioning
 
@@ -29,32 +29,38 @@ SemVer, pre-1.0. Each phase that meets its done-criteria cuts a minor version an
 - [ ] Mohan's review of the docs
 
 **0b: running skeleton**
-- [ ] SQLAlchemy Core schema + first Alembic migration; `earlybird db upgrade`
-- [ ] Minimal portal (FastAPI) that shows "Dawn: no jobs yet" plus a health endpoint
-- [ ] `Procfile`, and `make up` / `down` / `logs` with a pidfile; data persists across both
+- [x] SQLAlchemy Core schema + first Alembic migration; `earlybird db upgrade`
+- [x] Portal (FastAPI + HTMX) with a health banner and `/health`
+- [x] `Procfile`, and `make up` / `down` / `logs` / `status` with a pidfile; data persists across both
+- [x] Dependabot for pinned actions and Python deps
 
 **Done when:** Mohan has reviewed the docs, and `make up` and `make down` work with the schema live locally.
 
 ## Phase 1 — Public ingestion
 
-- [ ] `Job` model, shared HTTP client (UA, retries, rate limits), normalize, dedupe
-- [ ] Adapters: Greenhouse, Lever, Ashby; RemoteOK, Himalayas, WWR, Remotive (each verified against live responses, with fixtures)
-- [ ] Registry seeded from Mohan's company list, plus schema validation
-- [ ] Rules-based generic extraction (YOE, remote type, stack, seniority, summary)
-- [ ] `health`: adapter run records and anomaly rules
-- [ ] Publish `state.db.zst`, `jobs.json`, `health.json` to the `data-latest` Release
-- [ ] `ingest.yml` cron (repo public) + `keepalive.yml`
-- [ ] `make sync`
+- [x] `Job` model, shared HTTP client (UA, retries, per-host pacing), normalize, dedupe (canonical key, read-time grouping)
+- [x] Adapters: Greenhouse, Lever, Ashby; RemoteOK, Himalayas, WWR, Remotive (each verified live, with real fixtures)
+- [x] Verified starter registry + schema validation
+- [ ] Registry seeded from Mohan's company list
+- [x] Rules-based generic extraction (YOE, remote type, stack, seniority, summary)
+- [x] `health`: adapter run records, company status, anomaly rules
+- [x] Publish `state.db.gz`, `jobs.json`, `health.json` (with a privacy guard) to the `data-latest` Release
+- [x] `ingest.yml` cron + `keepalive.yml`
+- [x] `make sync` (checksum-verified)
+- [x] Terms-restricted boards routed to the private plane ([ADR 0015](decisions/0015-terms-restricted-sources-and-descriptions.md))
 
 **Done when:** scheduled runs publish a clean, deduped dataset reliably (e.g. 7 consecutive days without a failed run or a corrupted snapshot).
 
 ## Phase 2 — Private plane
 
-- [ ] `profile.yaml` schema and loading; profile versioning
-- [ ] Hard excludes, rule score, buckets, safety nets
+- [x] `profile.yaml` schema and loading; profile versioning; **profile builder** in the portal
+- [x] Hard excludes, rule score, buckets, watchlist bypass, fail-open unknowns
+- [ ] Remaining safety nets (feedback loop, weekly sample cadence)
 - [ ] Optional LLM layer (provider decided by then, see CONTEXT open question 4)
 - [ ] Email ingestion via IMAP: one parser per sender (LinkedIn, Naukri, Wellfound; then Instahyre, Cutshort, Hirist, Otta / WTTJ); private visibility; merge with public twins
-- [ ] Portal per [portal.md](portal.md): Dawn (finite queue, health banner, keyboard triage, one-word dismiss reasons), Nest (statuses incl. shortlisted, checklist, notes), Perch (watchlist)
+- [x] Dawn: finite queue, health banner, keyboard triage, one-word dismiss reasons, excluded view, filters
+- [x] Nest: status columns + notes
+- [ ] Nest `shortlisted` checklist (pending open question 5)
 - [ ] Missed it capture (logging starts early so the Phase 3 audit has data)
 - [ ] Chirp (Telegram), with a daily cap
 - [ ] `make backup`

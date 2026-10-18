@@ -7,7 +7,25 @@ license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [{ name = "Mohan Gowda T", email = "mohangowdat.dev@gmail.com" }]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.146.0",
+    "honcho>=2.0.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
+    "python-multipart>=0.0.32",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.1.5",
+    "structlog>=26.1.0",
+    "tenacity>=9.2.1",
+    "typer>=0.27.3",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+earlybird = "earlybird.cli:app"
 
 [project.urls]
 Repository = "https://github.com/mohangowdatdev/earlybird"
@@ -22,7 +40,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "N", "S", "PTH", "TRY", "DTZ", "PL"]
-ignore = ["PLR0913"]
+ignore = ["PLR0913", "TRY003", "RUF001"]  # en dashes are real data in job text
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "PLR2004"]
@@ -35,6 +53,9 @@ files = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 
 [tool.importlinter]
 root_package = "earlybird"
@@ -50,6 +71,7 @@ source_modules = [
     "earlybird.discovery",
     "earlybird.enrich",
     "earlybird.publish",
+    "earlybird.ingest",
 ]
 forbidden_modules = ["earlybird.private", "earlybird.notify", "earlybird.portal"]
 
@@ -60,5 +82,8 @@ dev = [
     "mypy>=2.4.0",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "respx>=0.23.1",
     "ruff>=0.17.1",
+    "types-pyyaml>=6.0.12.20260906",
 ]

@@ -4,6 +4,18 @@
 
 **Design principle:** the portal is for **triage**; applying is the real work. Every screen should end in a decision. There is no infinite scroll and no "browse everything" as the default. A morning session should finish with Dawn empty, in about 15 minutes.
 
+## Profile builder (`/profile`)
+
+The first visit goes straight here. It's a single validated form that writes `profile.yaml`:
+- name and years of experience
+- role families and must-have / nice-to-have skills (suggestions come from the stack dictionary)
+- accepted work arrangements and cities for hybrid/onsite
+- preferred seniority and title excludes
+- the Perch watchlist (suggested from the registry)
+- an optional minimum salary and the Chirp cap
+
+Saving changes the profile version, and Dawn re-scores immediately because scoring runs at read time.
+
 ## Dawn: the morning queue
 
 ```text

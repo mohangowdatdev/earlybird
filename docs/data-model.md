@@ -2,7 +2,7 @@
 
 > Last updated: 2026-10-18 · Related: [architecture](architecture.md) · [matching](matching.md) · [privacy-and-ethics](privacy-and-ethics.md)
 
-This is a draft. Concrete types land with the code in Phase 0b/1, and this doc is updated in the same commits.
+Implemented in `earlybird.core.models`, `earlybird.enrich.models` and `earlybird.db.schema` (migration `0001`).
 
 ## Job
 
@@ -22,8 +22,7 @@ This is a draft. Concrete types land with the code in Phase 0b/1, and this doc i
 | `employment_type` | str \| None | full-time, contract, … |
 | `posted_at` | datetime \| None | From the source, when provided; often actually "updated at" |
 | `description_text` | str \| None | Plain text. **Used for extraction only; never published.** |
-| `salary_raw` | str \| None | If stated |
-| `raw` | dict | Original payload fragment. Local/debug only, never published. |
+| `salary_min` / `salary_max` / `salary_currency` / `salary_period` | | From structured source fields only; never guessed |
 
 ## Derived fields
 
@@ -33,13 +32,14 @@ This is a draft. Concrete types land with the code in Phase 0b/1, and this doc i
 | `canonical_key` | str | Normalized `company + title + primary location` hash, for merging across sources |
 | `first_seen_at` / `last_seen_at` | datetime | Dedupe. **Dawn ranks by `first_seen_at`** because `posted_at` is unreliable. |
 | `closed_at` | datetime \| None | Set when a job disappears from its source for 2 consecutive runs |
-| `seen_on` | list[{source, url, first_seen_at}] | All sources this job appeared on |
+| *seen on* | derived | Each `(source, external_id)` is its own row; rows sharing a `canonical_key` are one job seen on several sources. Grouping happens at read time (Dawn), so a bad merge is never destructive. |
 | `remote_type` | enum | `onsite`, `hybrid`, `remote_india_ok`, `remote_restricted`, `remote_unspecified`, `unknown` |
 | `yoe_min` / `yoe_max` | int \| None | Generic extraction |
 | `seniority` | enum \| None | `junior`, `mid`, `senior`, `staff_plus`, `lead_manager`, `unknown` |
 | `stack` | list[str] | Normalized skill tags |
-| `salary` | {min, max, currency, period} \| None | When stated |
 | `summary` | str | One line, built from facts by template (no LLM needed) |
+| `content_hash` | str | Hash of the source content; a change triggers re-extraction |
+| `missed_runs` | int | Consecutive successful company fetches that didn't list the job (2 → closed) |
 | `extraction_method` | enum | `rules`, `llm`, `mixed` |
 | `visibility` | enum | `public` (ATS and boards) or `private` (email-derived). **Private never leaves the private plane.** |
 
@@ -47,12 +47,13 @@ This is a draft. Concrete types land with the code in Phase 0b/1, and this doc i
 
 | Asset | Contents | Consumer |
 | --- | --- | --- |
-| `state.db.zst` | Full public-plane SQLite (public fields only, no `description_text` beyond 90 days, no `raw`) | Next Actions run; `make sync` |
+| `state.db.gz` | Full public-plane SQLite: `jobs` (with `description_text` always NULL), `adapter_runs`, `company_status`. Private tables exist but are empty, and the publish guard enforces that. | Next Actions run; `make sync` |
+| `state.prev.db.gz` | The previous snapshot (one-step rollback) | Recovery |
 | `jobs.json` | Slim card fields for open jobs only: `job_id, title, company_name, url, locations, remote_type, yoe_min, yoe_max, seniority, stack, summary, first_seen_at, sources` | Earlybird Board (client-side filter) |
 | `health.json` | Per-source last runs, statuses, counts, `generated_at` | Portal health banner; landing page counts |
 | `checksums.txt` | SHA-256 of each asset | Integrity check on download |
 
-> Whether `description_text` should be stored in the public state at all is an open design point. It helps re-extraction, but it is content we must not republish. The current position: store it compressed inside `state.db` for extraction only, never in `jobs.json`, and never rendered on the site. Revisit at Phase 1 review.
+> **Decided (2026-10-18):** descriptions are **never stored in the public state**. A downloadable `state.db` containing them would be republishing. Extraction runs on the fresh fetch, then the text is dropped. The public dataset carries the extracted `stack` and facts instead. When the private plane needs full text (e.g. LLM scoring), it fetches the posting on demand and keeps it locally only. `publish` refuses to run if any `description_text` is present.
 
 ## Local database (`var/earlybird.db`)
 
@@ -61,10 +62,11 @@ The tables mirror the public schema, plus private tables:
 | Table | Purpose |
 | --- | --- |
 | `jobs` | All jobs, public (from sync) and private (from email), with `visibility` |
-| `job_sources` | `seen_on` rows |
-| `adapter_runs` | `run_id, source, started_at, finished_at, status, jobs_found, jobs_new, error` |
-| `scores` | `job_id, profile_version, rule_score, llm_score, fit_score, bucket, reason, excluded_reason, scored_at, method` |
-| `tracker` | `job_id, status (new, seen, saved, shortlisted*, applied, interviewing, rejected, offer, dismissed), dismiss_reason, checklist (cv_tailored, referral, applied_url), updated_at`. *`shortlisted` is proposed ([portal.md](portal.md#nest-from-triage-to-real-applications)).* |
+| `adapter_runs` | `run_id, source, started_at, finished_at, status (ok/partial/error), companies_total, companies_failed, jobs_found, jobs_new, error` |
+| `company_status` | Per registry company and ATS: `status (ok/not_found/error), last_checked_at, consecutive_failures, open_jobs`. Dead slugs come from here. |
+| `app_state` | Small key/value store: `last_sync_at`, `last_visit_at` (for Dawn's "new" badges) |
+| `scores` *(Phase 2, with the LLM)* | Rule scores are computed on the fly today (fast, never stale); persisted scores arrive with LLM scoring: `job_id, profile_version, rule_score, llm_score, fit_score, bucket, reason, excluded_reason, scored_at, method` |
+| `tracker` | `job_id, status (new, seen, saved, shortlisted*, applied, interviewing, rejected, offer, dismissed), reason (one-word dismiss reason), note, updated_at`. *`shortlisted` is proposed ([portal.md](portal.md#nest-from-triage-to-real-applications)); the checklist arrives with it.* |
 | `notes` | `job_id, body, created_at` |
 | `feedback` | Save/dismiss events used as scoring examples |
 | `watchlist` | Perch companies (mirrors the profile; editable in the portal) |

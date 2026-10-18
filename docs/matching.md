@@ -34,6 +34,8 @@ Each match stores `excluded_reason` (e.g. `title:intern`). Anything ambiguous is
 
 ### 2. Rule score (0–10)
 
+*Implemented in `earlybird.private.scoring`. Points: role family 0–4, skills 0–3, experience 0–1.5, location 0–1.5. A seniority mismatch costs −2 and a stated salary below your minimum costs −1. Scores are computed at read time, so a profile change takes effect instantly.*
+
 The score is a weighted sum, with weights from the profile:
 - **Role family:** title matches a role-family keyword (e.g. "data engineer", "ML engineer", "analytics engineer").
 - **Skills:** skill keywords found in the description.

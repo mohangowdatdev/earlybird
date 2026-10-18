@@ -20,3 +20,4 @@ Short records of significant decisions. Copy [template.md](template.md) to make 
 | [0012](0012-zero-cost-operation.md) | Zero-cost operation | Accepted |
 | [0013](0013-privacy-boundary-import-linter.md) | Privacy boundary enforced by import-linter | Accepted |
 | [0014](0014-portable-private-plane.md) | Portable private plane; hosting candidates | Accepted |
+| [0015](0015-terms-restricted-sources-and-descriptions.md) | Terms-restricted sources run privately; descriptions never published | Accepted (Mohan to confirm) |

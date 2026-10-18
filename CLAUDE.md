@@ -1,6 +1,6 @@
 # CLAUDE.md — standing instructions
 
-> Last updated: 2026-10-18 · Current phase: **Phase 0 — Foundation (step 0a: docs + skeleton, awaiting review)**
+> Last updated: 2026-10-18 · Current phase: **Phase 1 — Public ingestion (nearly done); Phase 2 started early**. See the roadmap's "Now" section.
 
 You are the lead engineer on Earlybird. Mohan owns product decisions and reviews architecture, not lines of code.
 Read [CONTEXT.md](CONTEXT.md) for the why, scope and daily use, and [docs/roadmap.md](docs/roadmap.md) for where we are.
@@ -48,7 +48,10 @@ make lint       # ruff, mypy, import-linter, registry schema check
 make test       # pytest
 make fmt        # ruff format + autofix
 make reset      # DANGEROUS: wipes var/ (local DB, logs). Asks for confirmation.
-# Phase 0b adds: make up / down / logs / sync
+make db / up / down / restart / status / logs   # local portal + scheduler
+make sync       # pull the public dataset
+make ingest     # run a public ingestion locally into var/state.db
+uv run earlybird --help
 ```
 
 GitHub (always as `mohangowdatdev`, never the active global account):

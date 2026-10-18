@@ -1,0 +1,256 @@
+{
+ "comments": "21/08/2026: Cursor pagination is now available and is the preferred way to page through the feed. Pass the nextCursor value from each response back as ?cursor=. It is faster than offset and will never return the same job twice. The offset parameter is deprecated and will be removed in a future release. 13/03/2026: The API has been updated to include the companySlug field in the response.",
+ "updatedAt": 1792331533,
+ "offset": 0,
+ "limit": 20,
+ "totalCount": 127960,
+ "nextCursor": "MjAyNi0xMC0xOFQxMzo0Njo0NC4zMjkxOTVafDI0MjM3MTU",
+ "jobs": [
+  {
+   "title": "Initiativbewerbung",
+   "excerpt": "War noch keine passende Stelle für dich dabei?  Dann bewirb dich gerne initiativ bei uns.",
+   "companyName": "inovex GmbH",
+   "companySlug": "inovex-gmbh",
+   "companyLogo": "https://cdn-images.himalayas.app/jq8nec8tz4ptvfmio7hcvgbeptj5",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": null,
+   "locationRestrictions": [],
+   "timezoneRestrictions": [
+    -11,
+    -10,
+    -9.5,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    -4,
+    -3.5,
+    -3,
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    3,
+    3.5,
+    4,
+    4.5,
+    5,
+    5.5,
+    5.75,
+    6,
+    6.5,
+    7,
+    8,
+    8.75,
+    9,
+    9.5,
+    10,
+    10.5,
+    11,
+    12,
+    12.75,
+    13,
+    14
+   ],
+   "categories": [
+    "Software-Engineer",
+    "Full-Stack-Developer",
+    "IT-Consultant",
+    "Cloud-Engineer",
+    "Data-Engineer",
+    "Initiativbewerbung",
+    "Initiativbewerbungen",
+    "Initiativbewerbung-Alle-Abteilungen",
+    "Initiativbewerber",
+    "Offene-Bewerbung",
+    "Initiativ",
+    "Zur-Zeit-Nicht-Das-Richtige-Dabei?-Dann-Bewirb-Dich-Initiativ!",
+    "Zeit-Für-Deine-Initiative!-Bewirb-Dich"
+   ],
+   "parentCategories": [
+    "Developer",
+    "Operations",
+    "Data Science"
+   ],
+   "description": "<p>War noch keine passende Stelle für dich dabei? Dann bewirb dich gerne initiativ bei uns. Was uns verbindet, ist die Lust auf neue Technologien - sowohl im Projektgeschäft als auch in den internen Abteilungen - und die Begeisterung für eine moderne und vertrauensvolle Unternehmenskultur.</p><h3>Requirements</h3><h3>Wer wir sind</h3><p>inovex ist ein integriertes Projekthaus für die Digitale Transformation. Wir unterstützen Unternehmen umfassend bei ihrer Digitalisierung. Durch innovative und exzellente Software &amp; Platforms, Big Data &amp; AI, Cloud &amp; Co.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1792331516,
+   "expiryDate": 1797515516,
+   "applicationLink": "https://himalayas.app/companies/inovex-gmbh/jobs/initiativbewerbung",
+   "guid": "https://himalayas.app/companies/inovex-gmbh/jobs/initiativbewerbung"
+  },
+  {
+   "title": "Out of Hours - Business Travel Consultant - Remote, UK (Part Time)",
+   "excerpt": "About Corporate TravellerAt Corporate Traveller, we’re on a mission to take business travel to the next level.",
+   "companyName": "Flight Centre Travel Group",
+   "companySlug": "flightcentre",
+   "companyLogo": "https://cdn-images.himalayas.app/8pf5j8cr8h7j1ms1z8dcb3kwqnzk",
+   "employmentType": "Part Time",
+   "minSalary": 17250,
+   "maxSalary": 17250,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": "GBP",
+   "locationRestrictions": [
+    "United Kingdom"
+   ],
+   "timezoneRestrictions": [
+    0
+   ],
+   "categories": [
+    "Travel-Consultant",
+    "Business-Travel-Consultant",
+    "Emergency-Assistance-Consultant",
+    "After-Hours-Travel-Consultant",
+    "Remote-Travel-Consultant",
+    "Part-Time-Travel-Agent",
+    "Business-Travel-Advisor",
+    "Remote-Travel-Advisor"
+   ],
+   "parentCategories": [],
+   "description": "<p><img alt=\"\"></p><h3>About Corporate Traveller</h3><p>At Corporate Traveller, we’re on a mission to take business travel to the next level. And when it comes to our people, we know we are next level. We are anything but ordinary. Part of the corporate division of the <a href=\"https://himalayas.app/companies/flightcentre\">Flight Centre Travel Group</a> (FCTG), Corporate Traveller is one of FCTG's most successful brands, globally. Our mission is to make end to end travel experience faster, simpler and easier for our customers and to demonstrate ongoing value to decision-makers, travellers and bookers. We provide our customers with the perfect blend of personal, local service blended with our expert technology suite and the great choice and value which comes with being part of the FCTG family. We lead with passion, ambition, and a hunger to do better. We do whatever it takes to get the best results, for ourselves and our customers. We are committed to helping our customers and each other grow and smash our goals. And at our core, we believe that together we can do anything. Together, we are here to take it to the next level.</p><h3>About the role</h3><div>\n<p>When travel plans change unexpectedly, flights are disrupted, or urgent assistance is needed outside of normal business hours, our Emergency Assist team steps in. We're looking for a customer-focused Emergency Assist Travel Consultant who thrives in a fast-paced environment and enjoys solving problems, supporting travelle",
+   "pubDate": 1792331403,
+   "expiryDate": 1797515402,
+   "applicationLink": "https://himalayas.app/companies/flightcentre/jobs/out-of-hours-business-travel-consultant-remote-uk-part-time",
+   "guid": "https://himalayas.app/companies/flightcentre/jobs/out-of-hours-business-travel-consultant-remote-uk-part-time"
+  },
+  {
+   "title": "PE Electrical Engineer",
+   "excerpt": "Electrical PE Company: LRS FederalLocation: Corporate / RemotePosition Type: Full-Time, Senior LevelPosition OverviewLRS Federal is seeking a high-caliber, licensed Electrical PE with an extensive background in federal and defense sectors to join our corporate engineering team.",
+   "companyName": "LRS Federal",
+   "companySlug": "lrs-federal",
+   "companyLogo": "https://cdn-images.himalayas.app/rb17ebjrnerfrxx4kiv98pm6zjrv",
+   "employmentType": "Full Time",
+   "minSalary": 140000,
+   "maxSalary": 175000,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Electrical-Engineer",
+    "Senior-Electrical-Engineer",
+    "Electrical-Professional-Engineer",
+    "Electrical-Design-Engineer",
+    "Federal-Electrical-Engineer"
+   ],
+   "parentCategories": [
+    "Hardware Engineer"
+   ],
+   "description": "<h3>Electrical PE </h3><h3>Company: <a href=\"https://himalayas.app/companies/lrs-federal\">LRS Federal</a>\n</h3><h3>Location: Corporate / Remote</h3><h3>Position Type: Full-Time, Senior Level</h3><h3>Position Overview</h3><p><a href=\"https://himalayas.app/companies/lrs-federal\">LRS Federal</a> is seeking a high-caliber, licensed Electrical PE with an extensive background in federal and defense sectors to join our corporate engineering team. This is not a purely administrative role; we are looking for a senior technical expert who possesses 15+ years of experience and continues to actively perform physical electrical engineering design work.</p><p>The successful candidate will lead the design, analysis, and quality control of complex electrical infrastructure projects for the Department of Defense (DoD), Department of Energy (DOE), and civil federal agencies (GSA, VA).</p><h3>Mandatory Qualifications (\"Must-Haves\")</h3><p>Candidates who do not meet all of the following criteria will not be considered:</p><ul>\n<li>Licensure: Active Professional Engineer (PE) license in electrical engineering (with the ability to obtain reciprocity in additional states as required).</li>\n<li>Experience: Minimum of fifteen (15) years of progressive experience working explicitly on Federal and Department of Defense (DoD) infrastructure and facility projects.</li>\n<li>Active Design Footprint: Proven track record of actually performing physical electrical design work within recent roles (producing ca",
+   "pubDate": 1792331295,
+   "expiryDate": 1797515294,
+   "applicationLink": "https://himalayas.app/companies/lrs-federal/jobs/pe-electrical-engineer",
+   "guid": "https://himalayas.app/companies/lrs-federal/jobs/pe-electrical-engineer"
+  },
+  {
+   "title": "Senior Data Scientist",
+   "excerpt": "Circle (NYSE: CRCL) is one of the world’s leading internet financial platform companies, building the foundation of a more open, global economy through digital assets, payment applications, and programmable blockchain infrastructure.",
+   "companyName": "Circle",
+   "companySlug": "circle-com",
+   "companyLogo": "https://cdn-images.himalayas.app/dy1682qo75fenjpk6v6iagt4529k",
+   "employmentType": "Full Time",
+   "minSalary": 152500,
+   "maxSalary": 205000,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Data-Scientist",
+    "Fraud-Data-Science",
+    "Risk-Data-Science",
+    "Machine-Learning-Engineer",
+    "Senior-Data-Science",
+    "Senior-Data-Scientist-Jobs",
+    "Data-Science"
+   ],
+   "parentCategories": [
+    "Data Science"
+   ],
+   "description": "<p><a href=\"https://himalayas.app/companies/circle-com\">Circle</a> (NYSE: CRCL) is one of the world’s leading internet financial platform companies, building the foundation of a more open, global economy through digital assets, payment applications, and programmable blockchain infrastructure. <a href=\"https://himalayas.app/companies/circle-com\">Circle</a>’s platform includes the world’s largest regulated stablecoin network anchored by USDC, <a href=\"https://himalayas.app/companies/circle-com\">Circle</a> Payments Network for global money movement, and Arc, an enterprise-grade blockchain designed to become the Economic OS for the internet. Enterprises, financial institutions, and developers use <a href=\"https://himalayas.app/companies/circle-com\">Circle</a> to power trusted, internet-scale financial innovation. Learn more at .</p><h3>What you’ll be part of:</h3><p><a href=\"https://himalayas.app/companies/circle-com\">Circle</a> is committed to visibility and stability in everything we do. As we grow as an organization, we're expanding into some of the world's strongest jurisdictions. Speed and efficiency are motivators for our success and our employees live by our company values: High Integrity, Future Forward, Multistakeholder, Mindful, and Driven by Excellence. We have built a flexible work environment where new ideas are encouraged and everyone is a stakeholder.</p><h3>About the role</h3><p>As <a href=\"https://himalayas.app/companies/circle-com\">Circle</a> expands the custome",
+   "pubDate": 1792331210,
+   "expiryDate": 1797515209,
+   "applicationLink": "https://himalayas.app/companies/circle-com/jobs/senior-data-scientist",
+   "guid": "https://himalayas.app/companies/circle-com/jobs/senior-data-scientist"
+  },
+  {
+   "title": "Performance Monitoring Engineer (4817)",
+   "excerpt": "Come work for a large global financial and insurance products company!",
+   "companyName": "Keep Simple",
+   "companySlug": "keep-simple",
+   "companyLogo": "",
+   "employmentType": "Contractor",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "Brazil"
+   ],
+   "timezoneRestrictions": [
+    -5,
+    -4,
+    -3,
+    -2
+   ],
+   "categories": [
+    "Performance-Monitoring-Engineer",
+    "Site-Reliability-Engineer",
+    "DevOps-Engineer",
+    "Monitoring-Engineer",
+    "Observability-Engineer",
+    "Monitoring-And-Observability-Engineer",
+    "Performance-Analysis-Engineer",
+    "Monitoring-Platform-Engineer",
+    "Senior-Performance-Engineer"
+   ],
+   "parentCategories": [
+    "Developer"
+   ],
+   "description": "<p>Come work for a large global financial and insurance products company! This is your chance !!</p><p>Start a successful career in a renowned company in the international market! Great opportunity!</p><p>Global insurance and asset management company seeks a responsible, organized, dynamic and team-oriented person.</p><p>We are seeking anexperienced Performance Monitoring Engineer to ensure the performance,availability, and reliability of business-critical applications and supportingservices across cloud and hybrid environments.</p><p>Using Dynatrace as the standardmonitoring platform, the engineer will expand monitoring coverage, improvealert quality, develop actionable dashboards, define performance baselines andservice objectives, and support data-driven incident triage and root-causeanalysis.</p><p>The role works closely with application development, DevOps, platformengineering, and operations teams in a global environment. Fluent English andthe ability to collaborate effectively with international and multiculturalteams are required.</p><h3>KeyResponsibilities</h3><h3>DynatraceMonitoring and Administration:</h3><ul>\n<li>Design,implement, and maintain Dynatrace monitoring for applications, services, andsupporting infrastructure across cloud and on-premises environments;</li>\n<li>Install,configure, and troubleshoot Dynatrace components, including OneAgent,ActiveGate, and platform integrations;</li>\n<li>Validate monitoring coverage and data qualityfor newly onboarded and ex",
+   "pubDate": 1792331204,
+   "expiryDate": 1797515203,
+   "applicationLink": "https://himalayas.app/companies/keep-simple/jobs/performance-monitoring-engineer-4817",
+   "guid": "https://himalayas.app/companies/keep-simple/jobs/performance-monitoring-engineer-4817"
+  }
+ ]
+}

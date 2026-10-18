@@ -87,6 +87,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 | [0012](docs/decisions/0012-zero-cost-operation.md) | Zero-cost operation | Accepted |
 | [0013](docs/decisions/0013-privacy-boundary-import-linter.md) | The privacy boundary is enforced in code | Accepted |
 | [0014](docs/decisions/0014-portable-private-plane.md) | Private plane portable via config/env; hosting candidates for later | Accepted |
+| [0015](docs/decisions/0015-terms-restricted-sources-and-descriptions.md) | Terms-restricted boards (Himalayas, Remotive) run privately; descriptions never published | Accepted (Mohan to confirm) |
 
 ## Open questions
 
@@ -112,6 +113,12 @@ These need Mohan; Claude asks for them in batches when they come up.
 ## Decision log
 
 Newest first. Each entry is one line; link the ADR where there is one.
+
+- **2026-10-18:** Phase 0b and most of Phase 1 built: the pipeline, 7 verified adapters, publish, sync, a portal with Dawn/Nest triage and a profile builder, `make up`/`down`, and the ingest workflow.
+- **2026-10-18:** Profile builder in the portal (Mohan's request). `profile.yaml` stays the source of truth, edited through a validated form.
+- **2026-10-18:** Rule scoring computed on the fly at read time (no stale scores). A persisted `scores` table arrives with LLM scoring.
+- **2026-10-18:** Jobs stay one row per `(source, external_id)`; cross-source dedupe groups by `canonical_key` at read time, so merges are never destructive.
+- **2026-10-18:** Himalayas and Remotive are private-plane-only because of their terms; descriptions are never in the public state ([0015](docs/decisions/0015-terms-restricted-sources-and-descriptions.md)).
 
 - **2026-10-18:** Added Nest `shortlisted` status as a proposal (open question 5).
 - **2026-10-18:** Added two miss classes to the recall audit beyond Mohan's five: `adapter_gap` and `dedupe_merge` ([coverage.md](docs/coverage.md)).

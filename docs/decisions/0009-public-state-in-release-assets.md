@@ -13,8 +13,8 @@ Each Actions run needs the previous run's state: seen ids, `first_seen_at`, run 
 ## Decision
 
 Publish to a single rolling GitHub Release tagged `data-latest`. Each run overwrites these assets:
-- `state.db.zst`
-- `state.prev.db.zst` (one-step rollback)
+- `state.db.gz` (gzip: stdlib, no extra dependency)
+- `state.prev.db.gz` (one-step rollback)
 - `jobs.json`
 - `health.json`
 - `checksums.txt`

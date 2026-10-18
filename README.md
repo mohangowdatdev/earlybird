@@ -4,7 +4,7 @@
 
 *Every new role from company career pages, filtered to you, the morning it opens.*
 
-> **Status:** Phase 0 (Foundation). Nothing runs yet. This README describes what is being built. Real coverage numbers will replace the placeholders once we have them. See the [roadmap](docs/roadmap.md).
+> **Status:** early and working. Public ingestion from 7 verified sources, the local Dawn/Nest portal and a profile builder run today; email alerts, Chirp and the public board come next. See the [roadmap](docs/roadmap.md).
 
 Earlybird watches public company career feeds (Greenhouse, Lever, Ashby and more) and open job boards. It deduplicates what it finds, pulls out the facts that matter (experience range, remote eligibility, stack) and ranks every new posting against **your** profile, so a 15-minute morning triage covers everything that opened since yesterday.
 
@@ -51,9 +51,10 @@ More detail is in [docs/architecture.md](docs/architecture.md).
 ```bash
 git clone https://github.com/mohangowdatdev/earlybird.git && cd earlybird
 make setup                          # uv sync + pre-commit hooks
-cp .env.example .env                # fill in only what you use; everything is optional
-cp profile.example.yaml profile.yaml
-make up                             # (Phase 0b) start the portal and scheduler in the background
+cp .env.example .env                # optional: every value has a sensible default
+make up                             # portal + scheduler in the background → http://127.0.0.1:8765
+                                    # first visit opens the profile builder
+make sync                           # pull the latest public dataset now (the scheduler also does it hourly)
 make down                           # stop everything; data persists in var/
 ```
 
@@ -61,9 +62,9 @@ make down                           # stop everything; data persists in var/
 
 | Type | Sources | Status |
 | --- | --- | --- |
-| ATS (core) | Greenhouse, Lever, Ashby | Planned (Phase 1) |
+| ATS (core) | Greenhouse, Lever, Ashby | Verified |
 | ATS (expanded) | Workable, SmartRecruiters, Workday, Recruitee, BambooHR, Personio, Teamtailor, Breezy, Eightfold | Planned (Phase 3) |
-| Boards | RemoteOK, Himalayas, We Work Remotely, Remotive | Planned (Phase 1) |
+| Boards | RemoteOK, We Work Remotely (public); Himalayas, Remotive (private only, by their terms) | Verified |
 | Email alerts (private) | LinkedIn, Naukri, Wellfound, Instahyre, Cutshort, Hirist, Otta / Welcome to the Jungle alert emails | Planned (Phase 2) |
 
 Earlybird only uses public APIs and feeds. It never scrapes behind a login or bot protection. See [docs/sources.md](docs/sources.md) and [docs/privacy-and-ethics.md](docs/privacy-and-ethics.md).

@@ -1,0 +1,61 @@
+name: Ingest
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"   # every 2 hours, off the top of the hour
+  workflow_dispatch:
+
+permissions:
+  contents: write   # upload release assets
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+env:
+  TAG: data-latest
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked --no-dev
+
+      - name: Restore previous state
+        run: |
+          mkdir -p var dist
+          if gh release download "$TAG" -p state.db.gz -D var --clobber; then
+            gunzip -f var/state.db.gz
+            cp var/state.db dist/state.prev.db && gzip -9 -f dist/state.prev.db
+          else
+            echo "No previous state; starting fresh."
+          fi
+
+      - name: Ingest
+        run: uv run earlybird ingest --db var/state.db
+
+      - name: Build dataset
+        run: uv run earlybird publish --db var/state.db --out dist
+
+      - name: Publish to data-latest release
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
+            --title "Dataset (rolling)" --prerelease --target "$GITHUB_SHA" \
+            --notes "Rolling public dataset, overwritten every run. See docs/data-model.md."
+          gh release upload "$TAG" dist/* --clobber
+
+      - name: Health summary
+        if: always()
+        run: |
+          {
+            echo "## Source health"
+            echo '```json'
+            cat dist/health.json 2>/dev/null || echo "no health.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

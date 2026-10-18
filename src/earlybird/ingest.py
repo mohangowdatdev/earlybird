@@ -8,11 +8,9 @@ import asyncio
 import hashlib
 import json
 import secrets
-import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 import structlog
@@ -30,9 +28,8 @@ from earlybird.core.http import HttpClient
 from earlybird.core.models import AtsRef, Company, Job, RemoteType, Visibility
 from earlybird.core.normalize import canonical_key, location_bucket
 from earlybird.db.schema import adapter_runs, company_status, jobs
-from earlybird.enrich import queue as llm_queue
-from earlybird.enrich.llm import OllamaExtractor, evidence_text, is_candidate, merge, priority
 from earlybird.enrich.models import Facts
+from earlybird.enrich.pipeline import enrich
 from earlybird.enrich.rules import EXTRACTOR_VERSION, extract
 
 log = structlog.get_logger()
@@ -170,12 +167,8 @@ def _store_jobs(
     now: datetime,
     *,
     visibility: Visibility,
-    extracted: list[tuple[Job, Facts]] | None = None,
 ) -> tuple[int, set[str]]:
-    """Insert new jobs, refresh changed ones, mark all as seen. Returns (new count, seen ids).
-
-    Newly (re-)extracted jobs are appended to `extracted` for the model-refinement stage.
-    """
+    """Insert new jobs, refresh changed ones, mark all as seen. Returns (new count, seen ids)."""
     unique = {job.job_id: job for job in found}
     if not unique:
         return 0, set()
@@ -197,10 +190,6 @@ def _store_jobs(
             facts = extract(job)
             row = job_row(job, visibility=visibility, facts=facts)
             changed_rows.append({f"b_{k}": v for k, v in row.items()})
-        else:
-            continue
-        if extracted is not None:
-            extracted.append((job, facts))
     if new_rows:
         conn.execute(jobs.insert(), new_rows)
     if changed_rows:
@@ -297,7 +286,6 @@ def store(
     started_at: datetime,
     now: datetime,
     visibility: Visibility = Visibility.PUBLIC,
-    extracted: list[tuple[Job, Facts]] | None = None,
 ) -> list[SourceStats]:
     stats: dict[str, SourceStats] = {}
     with engine.begin() as conn:
@@ -307,9 +295,7 @@ def store(
             if outcome.error is not None:
                 s.companies_failed += 1
                 s.errors.append(str(outcome.error))
-            new, seen = _store_jobs(
-                conn, outcome.jobs, now, visibility=visibility, extracted=extracted
-            )
+            new, seen = _store_jobs(conn, outcome.jobs, now, visibility=visibility)
             s.jobs_found += len(seen)
             s.jobs_new += new
             if outcome.company is not None:
@@ -338,88 +324,6 @@ def store(
     return list(stats.values())
 
 
-@dataclass
-class Refiner:
-    """Model-refinement settings for one run."""
-
-    extractor: OllamaExtractor
-    queue_path: Path
-    time_budget_seconds: float
-    max_jobs: int
-
-
-_REFINED_COLUMNS = frozenset(
-    {"remote_type", "yoe_min", "yoe_max", "seniority", "stack", "summary", "extraction_method",
-     "canonical_key"}
-)  # fmt: skip
-
-
-async def _refine_one(engine: Engine, refiner: Refiner, job: Job) -> bool | None:
-    """Refine one queued job. Returns whether remote type changed, or None if skipped."""
-    with engine.connect() as conn:
-        current = conn.execute(
-            select(jobs.c.visibility, jobs.c.closed_at).where(jobs.c.job_id == job.job_id)
-        ).first()
-    if current is None or current.closed_at is not None:
-        return None
-    answer = await refiner.extractor.extract(job)
-    if answer is None:
-        return None
-    rules = extract(job)
-    facts = merge(rules, answer, evidence_text(job))
-    row = job_row(job, visibility=Visibility(current.visibility), facts=facts)
-    with engine.begin() as conn:
-        conn.execute(
-            jobs.update()
-            .where(jobs.c.job_id == job.job_id)
-            .values({k: v for k, v in row.items() if k in _REFINED_COLUMNS})
-        )
-    return facts.remote_type is not rules.remote_type
-
-
-async def refine(
-    engine: Engine, refiner: Refiner, extracted: list[tuple[Job, Facts]], now: datetime
-) -> dict[str, int]:
-    """Queue uncertain jobs, then let the model refine as many as the time budget allows."""
-    queue = llm_queue.open_queue(refiner.queue_path)
-    done = changed = 0
-    try:
-        llm_queue.prune(queue, now)
-        llm_queue.enqueue(
-            queue, ((j, priority(f)) for j, f in extracted if is_candidate(j, f)), now
-        )
-        deadline = time.monotonic() + refiner.time_budget_seconds
-        for job in llm_queue.take(queue, refiner.max_jobs):
-            if time.monotonic() > deadline:
-                break
-            changed += bool(await _refine_one(engine, refiner, job))
-            llm_queue.remove(queue, [job.job_id])
-            done += 1
-        remaining = llm_queue.size(queue)
-    finally:
-        queue.dispose()
-    log.info("llm.refined", model=refiner.extractor.model, done=done,
-             remote_changed=changed, remaining=remaining)  # fmt: skip
-    return {"done": done, "remote_changed": changed, "remaining": remaining}
-
-
-async def make_refiner(settings: Settings) -> Refiner | None:
-    """A Refiner when a model is configured *and* reachable; otherwise rules only (fail-open)."""
-    if settings.llm_provider != "ollama":
-        return None
-    extractor = OllamaExtractor(settings.ollama_url, settings.llm_model)
-    if not await extractor.available():
-        log.warning("llm.unavailable", url=settings.ollama_url, model=settings.llm_model)
-        await extractor.aclose()
-        return None
-    return Refiner(
-        extractor=extractor,
-        queue_path=settings.queue_path,
-        time_budget_seconds=settings.llm_time_budget_seconds,
-        max_jobs=settings.llm_max_jobs,
-    )
-
-
 def new_run_id(now: datetime) -> str:
     return f"{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(3)}"
 
@@ -433,7 +337,7 @@ async def run(
     timeout: float,
     concurrency: int,
     visibility: Visibility = Visibility.PUBLIC,
-    refiner: Refiner | None = None,
+    settings: Settings | None = None,
 ) -> list[SourceStats]:
     """Fetch and store one ingestion run. `now_fn` returns the current UTC datetime.
 
@@ -447,7 +351,6 @@ async def run(
         boards = boards_due(conn, sorted(wanted & set(BOARD_ADAPTERS)), started_at)
     async with HttpClient(timeout=timeout, concurrency=concurrency) as http:
         outcomes = await fetch_all(http, companies, wanted & set(ATS_ADAPTERS), boards)
-    extracted: list[tuple[Job, Facts]] = []
     stats = store(
         engine,
         outcomes,
@@ -455,13 +358,12 @@ async def run(
         started_at=started_at,
         now=now_fn(),
         visibility=visibility,
-        extracted=extracted,
     )
-    if refiner is not None:
-        try:
-            await refine(engine, refiner, extracted, now_fn())
-        finally:
-            await refiner.extractor.aclose()
+
+    if settings is not None:
+        fetched = [job for outcome in outcomes for job in outcome.jobs]
+        summary = await enrich(engine, fetched, settings, now_fn())
+        log.info("ingest.ai_done", **summary)
     for s in stats:
         log.info(
             "ingest.source_done",

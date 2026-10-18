@@ -92,9 +92,10 @@ def test_extract_yoe(text: str | None, expected: tuple[int | None, int | None]) 
     [
         ("Senior Data Engineer", Seniority.SENIOR),
         ("Sr. ML Engineer", Seniority.SENIOR),
-        ("Staff Software Engineer, Data", Seniority.STAFF_PLUS),
+        ("Staff Software Engineer, Data", Seniority.STAFF_PRINCIPAL),
         ("Engineering Manager, Data Platform", Seniority.LEAD_MANAGER),
-        ("Director of Data", Seniority.EXECUTIVE),
+        ("Director of Data", Seniority.DIRECTOR),
+        ("Head of Data Platform", Seniority.HEAD_PLUS),
         ("Data Engineering Intern", Seniority.INTERN),
         ("Data Engineer II", Seniority.MID),
         ("Data Engineer", Seniority.UNKNOWN),

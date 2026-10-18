@@ -168,11 +168,15 @@ def extract_yoe(text: str | None) -> tuple[int | None, int | None]:
 _SENIORITY_RULES: tuple[tuple[Seniority, re.Pattern[str]], ...] = (
     (Seniority.INTERN, re.compile(r"\b(intern|internship|trainee|apprentice)\b", re.I)),
     (
-        Seniority.EXECUTIVE,
-        re.compile(r"\b(director|vp|vice president|head of|chief|cto|ceo|cfo|coo)\b", re.I),
+        Seniority.HEAD_PLUS,
+        re.compile(r"\b(head of|vp|vice president|chief|cto|ceo|cfo|coo|ciso|svp|evp)\b", re.I),
     ),
+    (Seniority.DIRECTOR, re.compile(r"\bdirector\b", re.I)),
     (Seniority.LEAD_MANAGER, re.compile(r"\b(manager|lead|team lead|tech lead)\b", re.I)),
-    (Seniority.STAFF_PLUS, re.compile(r"\b(staff|principal|distinguished|architect)\b", re.I)),
+    (
+        Seniority.STAFF_PRINCIPAL,
+        re.compile(r"\b(staff|principal|distinguished|architect)\b", re.I),
+    ),
     (Seniority.SENIOR, re.compile(r"\b(senior|sr\.?|iii|iv|level 3)\b", re.I)),
     (
         Seniority.JUNIOR,
@@ -193,7 +197,7 @@ def detect_seniority(title: str) -> Seniority:
 
 
 # Bump when extraction rules or the taxonomy change: existing jobs are re-extracted on next fetch.
-EXTRACTOR_VERSION = 2
+EXTRACTOR_VERSION = 3
 
 POPULAR_SKILLS = (
     "python", "sql", "spark", "databricks", "airflow", "dbt", "snowflake", "bigquery",
@@ -296,14 +300,15 @@ _REMOTE_LABELS = {
     RemoteType.REMOTE_UNSPECIFIED: "Remote",
     RemoteType.UNKNOWN: "Location unclear",
 }
-_SENIORITY_LABELS = {
+SENIORITY_LABELS = {
     Seniority.INTERN: "Intern",
     Seniority.JUNIOR: "Junior",
     Seniority.MID: "Mid",
     Seniority.SENIOR: "Senior",
-    Seniority.STAFF_PLUS: "Staff+",
-    Seniority.LEAD_MANAGER: "Lead/Manager",
-    Seniority.EXECUTIVE: "Executive",
+    Seniority.STAFF_PRINCIPAL: "Staff / Principal",
+    Seniority.LEAD_MANAGER: "Lead / Manager",
+    Seniority.DIRECTOR: "Director",
+    Seniority.HEAD_PLUS: "Head of+",
 }
 
 
@@ -318,8 +323,8 @@ def summarize(
     stack: list[str],
 ) -> str:
     parts = []
-    if seniority in _SENIORITY_LABELS:
-        parts.append(_SENIORITY_LABELS[seniority])
+    if seniority in SENIORITY_LABELS:
+        parts.append(SENIORITY_LABELS[seniority])
     parts.append(_REMOTE_LABELS[remote_type])
     low, high = yoe
     if low is not None and high is not None and high != low:

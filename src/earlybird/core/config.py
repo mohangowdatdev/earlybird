@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,22 +24,22 @@ class Settings(BaseSettings):
     sync_interval_minutes: int = 60
     dawn_window_days: int = 3
 
-    # Small-model extraction (docs/matching.md). "none" keeps rules only.
-    llm_provider: Literal["none", "ollama"] = "none"
-    ollama_url: str = "http://127.0.0.1:11434"
-    llm_model: str = "qwen2.5:3b"
-    llm_time_budget_seconds: float = 1200.0
-    llm_max_jobs: int = 300
-    llm_queue_path: Path | None = None
+    # AI (ADR 0017). No key = rules only. Budgets are hard monthly caps in USD.
+    anthropic_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ANTHROPIC_API_KEY", "EARLYBIRD_ANTHROPIC_API_KEY"),
+    )
+    ai_model: str = "claude-haiku-5-5"
+    ai_monthly_budget_usd: float = 5.0
+    ai_fit_monthly_budget_usd: float = 2.0
+    ai_batch_threshold: int = 150
+    ai_max_batch_size: int = 10_000
+    ai_concurrency: int = 5
 
     http_timeout_seconds: float = 20.0
     http_concurrency: int = 16
     log_format: Literal["auto", "console", "json"] = "auto"
     log_level: str = "INFO"
-
-    @property
-    def queue_path(self) -> Path:
-        return self.llm_queue_path or self.data_dir / "llm_queue.db"
 
     @property
     def db_url(self) -> str:

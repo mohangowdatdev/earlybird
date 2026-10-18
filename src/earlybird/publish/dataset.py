@@ -15,7 +15,7 @@ from typing import Any
 
 from sqlalchemy import Engine, func, select
 
-from earlybird.db.schema import app_state, jobs, tracker
+from earlybird.db.schema import app_state, jobs, scores, tracker
 from earlybird.health.report import HealthReport
 
 # The only job fields that may appear on the public board. Changing this needs a privacy review.
@@ -40,6 +40,17 @@ PUBLIC_JOB_FIELDS: tuple[str, ...] = (
     "summary",
     "first_seen_at",
     "posted_at",
+    "domain",
+    "subdomain",
+    "work_setup",
+    "eligible_countries",
+    "eligible_regions",
+    "office_cities",
+    "required_languages",
+    "visa_sponsorship",
+    "skills_required",
+    "skills_preferred",
+    "ai_summary",
 )
 
 
@@ -58,6 +69,7 @@ def assert_publishable(engine: Engine) -> None:
             ),
             "tracker rows present": select(func.count()).select_from(tracker),
             "app_state rows present": select(func.count()).select_from(app_state),
+            "personal fit scores present": select(func.count()).select_from(scores),
         }
         for problem, query in checks.items():
             if conn.execute(query).scalar_one():

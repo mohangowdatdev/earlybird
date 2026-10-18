@@ -52,14 +52,20 @@ def test_profile_builder_saves_and_dawn_scores(client: TestClient, settings: Set
             "yoe": "7",
             "role_families": "Data Engineer, ML Engineer",
             "skills_must": "python, spark",
-            "remote_types": ["remote_india_ok", "remote_unspecified", "unknown"],
+            "domains": ["data", "ai"],
+            "countries": "India",
+            "cities": "bangalore",
+            "work_setups": ["remote", "hybrid"],
+            "languages": "English",
+            "expectations": "Lakehouse data engineering",
             "exclude_title_patterns": "intern, director",
             "chirp_daily_cap": "5",
         },
         follow_redirects=False,
     )
     assert response.status_code == 303
-    assert "data engineer" in settings.profile_path.read_text()
+    saved = settings.profile_path.read_text()
+    assert "data engineer" in saved and "Bengaluru" in saved and "- IN" in saved
 
     dawn = client.get("/dawn")
     assert dawn.status_code == 200

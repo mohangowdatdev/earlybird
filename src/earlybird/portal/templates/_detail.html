@@ -12,31 +12,58 @@
   </div>
 
   <div class="chips" style="margin-top:14px">
-    {{ ic.remote_chip(j.remote_type) }}
-    {% if yoe_label(j) %}<span class="chip">{{ ic.icon("briefcase") }}{{ yoe_label(j) }}</span>{% endif %}
+    {% if j.domain and j.domain != 'other' %}<span class="chip brand">{{ ic.icon({"data": "layers", "ai": "sparkles", "cybersecurity": "shield"}[j.domain]) }}{{ domain_labels[j.domain] }}{% if j.subdomain %} · {{ j.subdomain }}{% endif %}</span>{% elif j.domain == 'other' %}<span class="chip excluded">Outside your spaces</span>{% endif %}
+    {% if j.work_setup and j.work_setup != 'unknown' %}<span class="chip">{{ ic.icon({"remote": "globe", "hybrid": "hybrid", "onsite": "building"}[j.work_setup]) }}{{ j.work_setup | capitalize }}</span>{% else %}{{ ic.remote_chip(j.remote_type) }}{% endif %}
     {% if j.seniority != 'unknown' %}<span class="chip">{{ ic.icon("layers") }}{{ seniority_labels[j.seniority] }}</span>{% endif %}
+    {% if yoe_label(j) %}<span class="chip">{{ ic.icon("briefcase") }}{{ yoe_label(j) }}</span>{% endif %}
     {% if j.salary_max %}<span class="chip strong">{{ ic.icon("dollar") }}{{ j.salary_currency or "" }} {{ "{:,.0f}".format(j.salary_min or j.salary_max) }}{% if j.salary_min and j.salary_max and j.salary_max != j.salary_min %}–{{ "{:,.0f}".format(j.salary_max) }}{% endif %}{% if j.salary_period %} / {{ j.salary_period }}{% endif %}</span>{% endif %}
-    {% for loc in j.locations[:3] %}<span class="chip">{{ ic.icon("pin") }}{{ loc }}</span>{% endfor %}
-    {% if j.locations | length > 3 %}<span class="chip">+{{ j.locations | length - 3 }} more</span>{% endif %}
+    {% for lang in j.required_languages or [] %}<span class="chip warn">Requires {{ lang }}</span>{% endfor %}
+    {% if j.visa_sponsorship == 'yes' %}<span class="chip strong">{{ ic.icon("check") }}Visa sponsorship</span>{% elif j.visa_sponsorship == 'no' %}<span class="chip">No visa sponsorship</span>{% endif %}
   </div>
+  {% if j.ai_summary %}<p class="muted" style="margin-top:12px">{{ j.ai_summary }}</p>{% endif %}
 
   <div class="why">
     <div class="why-head">
       {{ ic.score(card) }}
-      <div><div style="font-weight:680">{% if s.watchlist %}Dream company · relevant role{% else %}{{ s.bucket.value | capitalize }} match{% endif %}</div>
-      <div class="muted" style="font-size:12.5px">{% if s.excluded_reason %}Excluded: {{ s.excluded_reason | replace("title:", "title contains “") }}{{ "”" if "title:" in s.excluded_reason }}{% elif "kept:unknowns" in s.reasons %}Kept because key facts are unknown (fail-open){% else %}Why it scored {{ s.value }}{% endif %}</div></div>
+      <div style="min-width:0;flex:1"><div style="font-weight:680">{% if s.excluded_reason %}Filtered out{% elif s.watchlist %}Dream company · relevant role{% elif s.fit is not none %}AI fit {{ s.fit }} / 100 · {{ s.bucket.value }}{% else %}{{ s.bucket.value | capitalize }} match{% endif %}</div>
+      <div class="muted" style="font-size:12.5px">{% if s.excluded_reason %}{{ s.excluded_reason | capitalize }}{% elif s.fit_reason %}{{ s.fit_reason }}{% elif "kept:unknowns" in s.reasons %}Kept because key facts are unknown (fail-open){% else %}Not AI-scored yet · rule estimate {{ s.value }}/10{% endif %}</div></div>
     </div>
-    {% if s.parts %}
+    {% if s.fit is not none %}
+      {% if s.matched %}<div class="chips" style="margin-top:4px">{% for k in s.matched %}<span class="chip strong">{{ ic.icon("check") }}{{ k }}</span>{% endfor %}</div>{% endif %}
+      {% if s.missing %}<div class="chips" style="margin-top:8px">{% for k in s.missing %}<span class="chip warn">{{ ic.icon("minus") }}{{ k }}</span>{% endfor %}</div>{% endif %}
+    {% elif s.parts and not s.excluded_reason %}
     <div class="bars">
       {% for name, value in s.parts.items() %}
       <div class="bar-row"><span style="text-transform:capitalize">{{ name }}</span><span class="track"><i style="width: {{ (value / part_max[name] * 100) | round }}%"></i></span><b>{{ value }}/{{ part_max[name] }}</b></div>
       {% endfor %}
     </div>
     {% endif %}
-    {% if s.skill_hits %}<div class="chips" style="margin-top:12px">{% for k in s.skill_hits %}<span class="chip strong">{{ ic.icon("check") }}{{ k }}</span>{% endfor %}</div>{% endif %}
   </div>
 
-  {% if j.stack %}
+  {% set countries = j.eligible_countries or [] %}{% set regions = j.eligible_regions or [] %}{% set offices = j.office_cities or [] %}
+  {% if countries or regions or offices %}
+  <div class="detail-section"><div class="section-title">{{ ic.icon("pin", "i sm") }} Where you can work from</div>
+    <div class="chips">
+      {% for r in regions %}<span class="chip brand">{{ ic.icon("globe") }}{{ r | replace("_", " ") | title }}</span>{% endfor %}
+      {% for c in countries %}<span class="chip">{{ country_names.get(c, c) }}</span>{% endfor %}
+      {% for o in offices %}<span class="chip">{{ ic.icon("building") }}{{ o.city }}, {{ country_names.get(o.country, o.country) }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if j.responsibilities %}
+  <div class="detail-section"><div class="section-title">{{ ic.icon("list", "i sm") }} What you'd do</div>
+    <ul class="resp">{% for r in j.responsibilities %}<li>{{ r }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% set lowered = (s.matched + s.skill_hits) | map("lower") | list %}
+  {% if j.skills_required or j.skills_preferred %}
+  <div class="detail-section"><div class="section-title">Skills asked for</div>
+    <div class="chips">{% for k in j.skills_required or [] %}<span class="chip {{ 'brand' if k | lower in lowered }}">{{ k }}</span>{% endfor %}</div>
+    {% if j.skills_preferred %}<div class="chips" style="margin-top:8px"><span class="muted" style="font-size:12px;align-self:center">Nice to have:</span>{% for k in j.skills_preferred %}<span class="chip {{ 'brand' if k | lower in lowered }}" style="opacity:.85">{{ k }}</span>{% endfor %}</div>{% endif %}
+  </div>
+  {% elif j.stack %}
   <div class="detail-section"><div class="section-title">Stack mentioned</div>
     <div class="chips">{% for t in j.stack %}<span class="chip {{ 'brand' if t in s.skill_hits }}">{{ t }}</span>{% endfor %}</div>
   </div>

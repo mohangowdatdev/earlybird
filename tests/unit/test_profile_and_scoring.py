@@ -1,13 +1,20 @@
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from earlybird.core.models import RemoteType, Seniority
+import pytest
+
+from earlybird.core.models import Domain, RemoteType, Seniority, WorkSetup
 from earlybird.private.profile import Profile, load_profile, save_profile
 from earlybird.private.scoring import Bucket, score_job
+from tests.conftest import NOW
 
 PROFILE = Profile(
     name="Test",
     yoe=7,
+    domains=[Domain.DATA, Domain.AI],
+    countries=["India"],
+    cities=["bangalore"],
     role_families=["Data Engineer", "ml engineer"],
     skills_must=["python", "spark"],
     skills_nice=["airflow"],
@@ -19,7 +26,13 @@ def row(**overrides: Any) -> dict[str, Any]:
     data: dict[str, Any] = {
         "title": "Senior Data Engineer",
         "company_slug": "acme",
+        "domain": "data",
+        "work_setup": "remote",
         "remote_type": RemoteType.REMOTE_INDIA_OK.value,
+        "eligible_countries": ["IN"],
+        "eligible_regions": [],
+        "office_cities": [],
+        "required_languages": [],
         "seniority": Seniority.SENIOR.value,
         "yoe_min": 5,
         "yoe_max": 8,
@@ -27,46 +40,64 @@ def row(**overrides: Any) -> dict[str, Any]:
         "locations": ["Remote - India"],
         "salary_max": None,
         "salary_currency": None,
+        "first_seen_at": NOW,
     }
     data.update(overrides)
     return data
 
 
-def test_profile_lists_are_cleaned_and_round_trip(tmp_path: Path) -> None:
-    assert PROFILE.role_families == ["data engineer", "ml engineer"]
+def test_profile_normalises_places_and_round_trips(tmp_path: Path) -> None:
+    assert PROFILE.countries == ["IN"]
+    assert PROFILE.cities == ["Bengaluru"]
+    assert PROFILE.remote_countries == {"IN"}
     path = tmp_path / "profile.yaml"
     save_profile(PROFILE, path)
-    loaded = load_profile(path)
-    assert loaded == PROFILE
-    assert loaded is not None and loaded.version == PROFILE.version
+    assert load_profile(path) == PROFILE
     assert PROFILE.model_copy(update={"yoe": 8}).version != PROFILE.version
 
 
-def test_load_missing_profile_is_none(tmp_path: Path) -> None:
-    assert load_profile(tmp_path / "nope.yaml") is None
+def test_at_most_two_domains() -> None:
+    with pytest.raises(ValueError, match="at most 2"):
+        Profile(domains=[Domain.DATA, Domain.AI, Domain.CYBERSECURITY])
+    assert Profile(domains=[Domain.OTHER]).domains == []
 
 
-def test_great_match_is_strong() -> None:
+def test_old_profile_files_still_load(tmp_path: Path) -> None:
+    path = tmp_path / "profile.yaml"
+    path.write_text("yoe: 6\nremote_types: [remote_india_ok]\ncities: [bangalore]\n")
+    loaded = load_profile(path)
+    assert loaded is not None and loaded.cities == ["Bengaluru"]
+
+
+def test_great_match_is_strong_without_ai() -> None:
     score = score_job(row(), PROFILE)
     assert score.bucket is Bucket.STRONG
-    assert "role:data engineer" in score.reasons
+    assert score.fit is None
 
 
-def test_hard_exclude_records_reason() -> None:
-    score = score_job(row(title="Data Engineering Intern"), PROFILE)
+def test_ai_fit_decides_bucket_and_freshness_ranks() -> None:
+    fit = {"fit": 62, "reason": "Good stack, light on ML", "matched": ["spark"], "missing": ["k8s"]}
+    score = score_job(row(), PROFILE, fit, NOW)
+    assert score.bucket is Bucket.MAYBE and score.fit == 62 and score.missing == ["k8s"]
+    older = score_job(row(first_seen_at=NOW - timedelta(days=3)), PROFILE, fit, NOW)
+    assert older.rank < score.rank
+    low = score_job(row(), PROFILE, {**fit, "fit": 30}, NOW)
+    assert low.bucket is Bucket.EXCLUDED and low.excluded_reason == "low AI fit"
+
+
+def test_filters_run_before_scoring() -> None:
+    fit = {"fit": 99, "reason": "x", "matched": [], "missing": []}
+    score = score_job(row(domain="cybersecurity"), PROFILE, fit)
     assert score.bucket is Bucket.EXCLUDED
-    assert score.excluded_reason == "title:intern"
+    assert score.excluded_reason == "cybersecurity role, not in your spaces"
 
 
 def test_watchlist_promotes_relevant_jobs_only() -> None:
-    weak = row(company_slug="perchco", stack=["python"], yoe_min=15, yoe_max=20,
-               remote_type="remote_restricted")  # fmt: skip
-    loose = row(company_slug="perchco", title="Software Engineer, Platform", stack=["go"])
-    assert not score_job(loose, PROFILE).watchlist  # one shared word is not relevance
+    weak = row(company_slug="perchco", stack=["python"], yoe_min=8, yoe_max=None)
     promoted = score_job(weak, PROFILE)
     assert promoted.bucket is Bucket.STRONG and promoted.watchlist
-    off_topic = score_job(row(company_slug="perchco", title="Account Executive", stack=[]), PROFILE)
-    assert off_topic.bucket is Bucket.EXCLUDED and not off_topic.watchlist
+    loose = row(company_slug="perchco", title="Software Engineer, Platform", stack=["go"])
+    assert not score_job(loose, PROFILE).watchlist
     intern = score_job(row(company_slug="perchco", title="Data Engineering Intern"), PROFILE)
     assert intern.bucket is Bucket.EXCLUDED
 
@@ -77,31 +108,13 @@ def test_skill_aliases_match_canonical_tags() -> None:
     assert score.skill_hits == ["pyspark", "postgres"]
 
 
-def test_unknowns_fail_open_to_maybe() -> None:
-    score = score_job(
-        row(stack=[], yoe_min=None, yoe_max=None, remote_type="unknown", locations=[]), PROFILE
-    )
-    assert score.bucket is Bucket.MAYBE
-
-
-def test_unrelated_role_is_excluded_as_low_score() -> None:
-    score = score_job(row(title="Product Designer", stack=[]), PROFILE)
-    assert score.bucket is Bucket.EXCLUDED
-    assert score.excluded_reason == "low_score"
-
-
-def test_yoe_outside_tolerance_scores_lower() -> None:
-    fits = score_job(row(yoe_min=8, yoe_max=None), PROFILE).value  # 8 <= 7+2
-    too_senior = score_job(row(yoe_min=12, yoe_max=15), PROFILE).value
-    assert fits > too_senior
-
-
-def test_restricted_remote_scores_lower_than_india_ok() -> None:
-    india = score_job(row(), PROFILE).value
-    us_only = score_job(row(remote_type="remote_restricted", locations=["Remote - US"]), PROFILE)
-    assert us_only.value < india
-
-
 def test_false_friend_titles_do_not_match_roles() -> None:
     score = score_job(row(title="Data Center Engineer", stack=[]), PROFILE)
-    assert score.parts["role"] < 1
+    assert score.parts.get("role", 0) < 1
+
+
+def test_setup_preference_is_respected() -> None:
+    remote_only = PROFILE.model_copy(update={"work_setups": [WorkSetup.REMOTE]})
+    onsite = row(work_setup="onsite", remote_type="onsite", office_cities=[
+        {"city": "Bengaluru", "country": "IN"}])  # fmt: skip
+    assert score_job(onsite, remote_only).excluded_reason == "onsite role"

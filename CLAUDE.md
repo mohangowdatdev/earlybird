@@ -15,12 +15,13 @@ The repo is **public from the first commit** ([mohangowdatdev/earlybird](https:/
 5. **Keep the docs alive.** Every decision, feature or version change updates the relevant docs **in the same commit**. Significant decisions get an ADR in `docs/decisions/`. Bump the `Last updated:` stamp on any doc you touch. Log new ideas in [docs/ideas.md](docs/ideas.md) with a date.
 6. **Design for the routine.** The portal is for fast triage (a 15-minute Dawn, then the top 3–5 applied to properly), not browsing. Every screen should end in a decision ([docs/portal.md](docs/portal.md)).
 7. **Measure coverage.** Every "missed" job is classified and turned into a fix ([docs/coverage.md](docs/coverage.md)).
-8. **Zero spend.** Mohan is not paying for anything yet ([ADR 0012](docs/decisions/0012-zero-cost-operation.md)). Never add a paid service, a paid API call path that runs by default, or anything that needs a card on file. Paid options must stay optional and off by default.
+8. **Capped AI spend only.** Claude Haiku is the only paid dependency, with hard monthly caps recorded in `ai_usage` ([ADR 0017](docs/decisions/0017-claude-haiku-enrichment-with-budget.md)). Never add another paid service. Any new AI call path must meter usage, respect the budget, and degrade to rules without a key. Run a small pilot before any bulk spend.
+9. **Scope is data, AI and cybersecurity** ([ADR 0018](docs/decisions/0018-scope-data-ai-cybersecurity.md)). Don't add features for other job families.
 
 ## Architecture in five lines
 
-- **Public plane (GitHub):** Actions polls ATS feeds and boards → normalize → dedupe → rule-based generic extraction → publishes a dataset to a rolling `data-latest` Release; Pages serves the site.
-- **Private plane (laptop):** `make sync` pulls the dataset → merges email-alert jobs → scores against `profile.yaml` → Dawn/Nest portal (FastAPI + HTMX) and Chirp alerts.
+- **Public plane (GitHub):** Actions polls ATS feeds and boards → normalize → dedupe → rules → **Claude Haiku enrichment** (one schema per posting, batched, budgeted) → publishes a dataset to a rolling `data-latest` Release; Pages serves the site.
+- **Private plane (laptop):** `make sync` pulls the dataset → **hard filters** from `profile.yaml` → **AI fit scoring** of what passes → Dawn/Nest portal (FastAPI + HTMX) and Chirp alerts.
 - **One `Job` model.** Adapters only ever emit `earlybird.core.models.Job`, so downstream code never changes when a source is added.
 - **Hard privacy boundary.** Public-plane packages (`core`, `db`, `adapters`, `health`, `discovery`, `enrich`, `publish`) must never import `private`, `notify` or `portal`. This is enforced by import-linter in CI.
 - **Fail open.** If a value is unknown, keep the job in "maybe". Never silently drop it.

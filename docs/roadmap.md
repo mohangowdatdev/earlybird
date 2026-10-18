@@ -51,6 +51,15 @@ SemVer, pre-1.0. Each phase that meets its done-criteria cuts a minor version an
 
 **Done when:** scheduled runs publish a clean, deduped dataset reliably (e.g. 7 consecutive days without a failed run or a corrupted snapshot).
 
+## AI pipeline (added 2026-10-19)
+
+- [x] Claude Haiku enrichment into one schema; batch + direct; budget ledger and caps; prefilter
+- [x] Scope: data / AI / cybersecurity; profile picks ≤ 2
+- [x] Hard filters in order (space, experience, seniority, location & setup, languages)
+- [x] AI fit scoring on filtered jobs; ranking by fit × freshness; Score-with-AI button
+- [x] Profile: 8-level seniority, countries + city picker, work setups, languages, expectations
+- [ ] Backlog enrichment run on Actions (~9k postings, ~$1.60) and a quality spot-check
+
 ## Phase 2 — Private plane
 
 - [x] `profile.yaml` schema and loading; profile versioning; **profile builder** in the portal

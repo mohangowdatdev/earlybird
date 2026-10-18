@@ -1,6 +1,24 @@
 # Matching
 
-> Last updated: 2026-10-18 · Related: [data-model](data-model.md) · ADRs [0006](decisions/0006-fail-open-matching.md), [0007](decisions/0007-llm-provider.md), [0012](decisions/0012-zero-cost-operation.md)
+> Last updated: 2026-10-19 · Related: [data-model](data-model.md) · ADRs [0006](decisions/0006-fail-open-matching.md), [0007](decisions/0007-llm-provider.md), [0012](decisions/0012-zero-cost-operation.md)
+
+## The pipeline (2026-10-19)
+
+```text
+posting ─► rules (free) ─► Claude Haiku enrichment (public plane, once per posting)
+        ─► hard filters (private, deterministic, in this order):
+             1. space: data / ai / cybersecurity (profile picks ≤ 2); "other" is out
+             2. experience: within −1/+2 years of yours
+             3. seniority: the AI's 8-level reading vs the levels you picked
+             4. location & setup: remote → may you work from your countries (a city implies its
+                country); hybrid/onsite → an office in your cities or countries
+             5. languages: a strictly required language you don't speak
+             (+ your title excludes)
+        ─► AI fit 0–100 (private, only for jobs that pass) ─► buckets: strong ≥ 75, maybe 50–74
+        ─► rank = fit × 0.93^days-since-first-seen
+```
+
+Unknown values never exclude (fail-open). Jobs not yet enriched or scored fall back to the rule score below, so nothing disappears while AI work is pending. Details: [ADR 0017](decisions/0017-claude-haiku-enrichment-with-budget.md), [ADR 0018](decisions/0018-scope-data-ai-cybersecurity.md).
 
 **Principle: fail open.** The goal is to never miss a good job. Every step may *raise* a job's rank, but only near-certain rules may exclude one, and each exclusion records its reason. Unknown means "keep".
 

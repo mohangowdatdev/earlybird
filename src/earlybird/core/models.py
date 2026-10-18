@@ -22,9 +22,29 @@ class Seniority(StrEnum):
     JUNIOR = "junior"
     MID = "mid"
     SENIOR = "senior"
-    STAFF_PLUS = "staff_plus"
+    STAFF_PRINCIPAL = "staff_principal"
     LEAD_MANAGER = "lead_manager"
-    EXECUTIVE = "executive"
+    DIRECTOR = "director"
+    HEAD_PLUS = "head_plus"
+    UNKNOWN = "unknown"
+
+
+class Domain(StrEnum):
+    """Earlybird's scope: only these three spaces (ADR 0018). Everything else is `other`."""
+
+    DATA = "data"
+    AI = "ai"
+    CYBERSECURITY = "cybersecurity"
+    OTHER = "other"
+
+
+IN_SCOPE_DOMAINS: tuple[Domain, ...] = (Domain.DATA, Domain.AI, Domain.CYBERSECURITY)
+
+
+class WorkSetup(StrEnum):
+    ONSITE = "onsite"
+    HYBRID = "hybrid"
+    REMOTE = "remote"
     UNKNOWN = "unknown"
 
 

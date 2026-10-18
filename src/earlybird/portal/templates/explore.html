@@ -10,6 +10,10 @@
     <option value="">All matches</option>
     {% for b in ("strong", "maybe", "excluded") %}<option value="{{ b }}" {{ 'selected' if filters.bucket == b }}>{{ b | capitalize }}</option>{% endfor %}
   </select>
+  <select class="select" name="domain" onchange="this.form.submit()" style="width:auto">
+    <option value="">All spaces</option>
+    {% for d in domains %}<option value="{{ d.value }}" {{ 'selected' if filters.domain == d.value }}>{{ domain_labels[d.value] }}</option>{% endfor %}
+  </select>
   <select class="select" name="remote" onchange="this.form.submit()" style="width:auto">
     <option value="">Any arrangement</option>
     {% for r in remote_types %}<option value="{{ r.value }}" {{ 'selected' if filters.remote == r.value }}>{{ remote_label(r.value) }}</option>{% endfor %}
@@ -40,7 +44,7 @@
   {% endfor %}
 </div>
 {% if pages > 1 %}
-{% set qs = "q=" ~ (filters.q | urlencode) ~ "&bucket=" ~ filters.bucket ~ "&remote=" ~ filters.remote ~ "&source=" ~ filters.source %}
+{% set qs = "q=" ~ (filters.q | urlencode) ~ "&bucket=" ~ filters.bucket ~ "&remote=" ~ filters.remote ~ "&source=" ~ filters.source ~ "&domain=" ~ filters.domain %}
 <nav class="pager">
   {% if page > 1 %}<a class="btn" href="?{{ qs }}&page={{ page - 1 }}">{{ ic.icon("chevron-left", "i sm") }} Previous</a>{% endif %}
   <span class="muted">Page {{ page }} of {{ pages }}</span>

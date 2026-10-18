@@ -17,8 +17,10 @@ Short records of significant decisions. Copy [template.md](template.md) to make 
 | [0009](0009-public-state-in-release-assets.md) | Public state in Release assets, not git | Accepted |
 | [0010](0010-portal-fastapi-htmx.md) | Portal: FastAPI + HTMX | Accepted |
 | [0011](0011-email-ingestion-imap.md) | Email ingestion via IMAP | Accepted (verify at build) |
-| [0012](0012-zero-cost-operation.md) | Zero-cost operation | Accepted |
+| [0012](0012-zero-cost-operation.md) | Zero-cost operation | Superseded by 0017 |
 | [0013](0013-privacy-boundary-import-linter.md) | Privacy boundary enforced by import-linter | Accepted |
 | [0014](0014-portable-private-plane.md) | Portable private plane; hosting candidates | Accepted |
-| [0016](0016-small-local-model-extraction.md) | Small local model (Ollama, Qwen2.5 3B) for description extraction | Accepted |
+| [0018](0018-scope-data-ai-cybersecurity.md) | Scope: data, AI and cybersecurity roles only | Accepted |
+| [0017](0017-claude-haiku-enrichment-with-budget.md) | Claude Haiku enrichment and fit scoring under a hard budget | Accepted |
+| [0016](0016-small-local-model-extraction.md) | Small local model for description extraction | Superseded by 0017 |
 | [0015](0015-terms-restricted-sources-and-descriptions.md) | Terms-restricted sources run privately; descriptions never published | Accepted (Mohan to confirm) |

@@ -8,7 +8,7 @@ Good roles, especially remote AI and data roles, are flooded with applicants wit
 
 ## What Earlybird does
 
-It continuously collects new postings from public ATS feeds and open job boards, plus (privately) job-alert emails. It deduplicates them, extracts structured facts (experience range, remote eligibility, stack), and scores each job against a personal profile. Every morning it shows a ranked **"new since yesterday"** view (Dawn) for a 15-minute triage, plus a tracker for applications (Nest).
+It continuously collects new postings from public ATS feeds and open job boards, plus (privately) job-alert emails. It deduplicates them, then **an AI model reads each posting into one structured schema**: space (data, AI or cybersecurity), seniority, experience, work setup, where you may work from, required languages, and skills. Hard filters from your profile run on those facts, and the AI scores what's left against your skills and expectations. Every morning it shows a ranked **"new since yesterday"** view (Dawn) for a 15-minute triage, plus a tracker for applications (Nest).
 
 **The goal behind it:** don't miss any good, relevant job from an in-scope source. When unsure, keep the job as "maybe" rather than drop it. Coverage is **measured**, not assumed ([coverage.md](docs/coverage.md)).
 
@@ -33,6 +33,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 
 ### In scope
 
+- **Roles: data, AI and cybersecurity only** ([ADR 0018](docs/decisions/0018-scope-data-ai-cybersecurity.md)). General SDE, full-stack and other roles are classified "other" and never reach you.
 - **Public collection:**
   - ATS feeds (Greenhouse, Lever, Ashby first, then Workable, SmartRecruiters, Workday, Recruitee, BambooHR, Personio, Teamtailor, Breezy, Eightfold)
   - open boards (RemoteOK, Himalayas, We Work Remotely, Remotive)
@@ -64,7 +65,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 
 ## Constraints
 
-- **Zero spend.** Everything runs on free tiers; paid options are optional and off by default ([ADR 0012](docs/decisions/0012-zero-cost-operation.md)).
+- **Small, capped AI budget.** $20 approved for Claude Haiku. Hard monthly caps in code ($8 enrichment on Actions, $2 fit scoring), plus a console limit. Everything else stays on free tiers ([ADR 0017](docs/decisions/0017-claude-haiku-enrichment-with-budget.md)).
 - **Nothing company-owned.** All accounts, keys and machines are personal ([ADR 0008](docs/decisions/0008-no-company-resources.md)).
 - **Privacy first.** Personal data and email-derived content never leave the private plane ([ADR 0005](docs/decisions/0005-public-private-split.md)).
 - **Public repo from day one.** Every commit is public, so nothing personal goes in, ever (gitleaks + `.gitignore` + review).
@@ -87,6 +88,8 @@ It continuously collects new postings from public ATS feeds and open job boards,
 | [0012](docs/decisions/0012-zero-cost-operation.md) | Zero-cost operation | Accepted |
 | [0013](docs/decisions/0013-privacy-boundary-import-linter.md) | The privacy boundary is enforced in code | Accepted |
 | [0014](docs/decisions/0014-portable-private-plane.md) | Private plane portable via config/env; hosting candidates for later | Accepted |
+| [0018](docs/decisions/0018-scope-data-ai-cybersecurity.md) | Scope: data, AI and cybersecurity roles only | Accepted |
+| [0017](docs/decisions/0017-claude-haiku-enrichment-with-budget.md) | Claude Haiku enrichment + fit scoring under a hard budget | Accepted |
 | [0016](docs/decisions/0016-small-local-model-extraction.md) | Small local model (Ollama, Qwen2.5 3B) refines descriptions, grounded and fail-open | Accepted |
 | [0015](docs/decisions/0015-terms-restricted-sources-and-descriptions.md) | Terms-restricted boards (Himalayas, Remotive) run privately; descriptions never published | Accepted (Mohan to confirm) |
 
@@ -95,7 +98,7 @@ It continuously collects new postings from public ATS feeds and open job boards,
 1. Is Bangalore hybrid in scope, or remote-only? *(needed by Phase 2)*
 2. Are big tech custom adapters (Google, Amazon, Apple, Meta, Microsoft, Uber) in or out? *(needed by Phase 4)*
 3. Mohan's exact profile (role families, YOE, skills, location rules) and the seed company list. *(needed by Phase 1 for the registry, Phase 2 for the profile)*
-4. **Which LLM, if any, while spend is zero?** Options: rules-only (default), or a local model via Ollama (free, slower). Anthropic stays the target once there's a budget. *(needed by Phase 2)*
+4. ~~Which LLM?~~ Decided: Claude Haiku 5.5 with a $20 budget ([ADR 0017](docs/decisions/0017-claude-haiku-enrichment-with-budget.md)).
 5. Should Nest get a `shortlisted` status between saved and applied, for the top 3–5 that get a tailored application? *(proposed in [portal.md](docs/portal.md); needed by Phase 2)*
 6. Trademark: "Earlybird" is also a well-known VC firm's name. That's fine for an OSS tool, but check before any commercial launch.
 
@@ -109,11 +112,16 @@ These need Mohan; Claude asks for them in batches when they come up.
 - [ ] A Gmail app password, plus the `earlybird` label and filter (Phase 2)
 - [ ] Job alerts on LinkedIn, Naukri, Wellfound and, optionally, Instahyre, Cutshort, Hirist and Otta / Welcome to the Jungle, all delivered to that label (Phase 2)
 - [ ] A Telegram bot via BotFather (Phase 2)
-- [ ] An Anthropic API key, only if and when there's a budget
+- [x] Anthropic API key, as a GitHub secret and in the local `.env`
+- [ ] A $20 spend limit set in the Anthropic console
 
 ## Decision log
 
 Newest first. Each entry is one line; link the ADR where there is one.
+
+- **2026-10-19:** AI pipeline: Claude Haiku enriches every posting into one schema; filters run in Mohan's order (space → experience → seniority → location & setup → languages); AI fit scoring (0–100) only on what passes; ranking by fit × freshness ([0017](docs/decisions/0017-claude-haiku-enrichment-with-budget.md)). Ollama path removed.
+- **2026-10-19:** Scope narrowed to data, AI and cybersecurity; a profile picks up to two ([0018](docs/decisions/0018-scope-data-ai-cybersecurity.md)).
+- **2026-10-19:** Profile rebuilt: 8-level seniority (intern … head of+), countries and cities (a city implies its country for remote), work setups, languages, free-text expectations.
 
 - **2026-10-19:** Perch became "Dream companies": only *relevant* roles there are promoted (full role match, or partial match plus a must-have skill); hard excludes still apply. This refines ADR 0006's "bypass scoring entirely", which flooded Dawn (Cloudflare: 434 → 32).
 - **2026-10-19:** A small local model (qwen2.5:3b via Ollama) refines unclear jobs from their descriptions, grounded and fail-open. 1.5B was rejected after a benchmark ([0016](docs/decisions/0016-small-local-model-extraction.md)).

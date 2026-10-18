@@ -1,5 +1,6 @@
 """The local portal (ADR 0010): Overview, Dawn triage, Nest board, Explore, Sources, Profile."""
 
+from collections import Counter
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -14,13 +15,15 @@ from sqlalchemy import Connection
 
 from earlybird.core.config import Settings, get_settings
 from earlybird.core.errors import EarlybirdError
-from earlybird.core.models import RemoteType, Seniority
+from earlybird.core.geo import COUNTRIES, city_options, country_options
+from earlybird.core.models import Domain, RemoteType, WorkSetup
 from earlybird.core.registry import load_registry
 from earlybird.db.engine import make_engine, upgrade
 from earlybird.db.schema import tracker
-from earlybird.enrich.rules import remote_label, stack_catalog
+from earlybird.enrich.rules import SENIORITY_LABELS, remote_label, stack_catalog
 from earlybird.health.report import HealthReport, build_report
 from earlybird.portal import queries
+from earlybird.private.fit import fit_lookup, score_pending
 from earlybird.private.profile import Profile, load_profile, save_profile
 from earlybird.private.scoring import PART_MAX, Bucket
 from earlybird.private.sync import get_state, set_state, sync
@@ -39,35 +42,36 @@ ROLE_SUGGESTIONS = (
     "mlops engineer",
     "data scientist",
     "data architect",
-    "backend engineer",
-    "platform engineer",
     "applied scientist",
+    "llm engineer",
+    "security engineer",
+    "application security engineer",
+    "cloud security engineer",
+    "detection engineer",
 )
-REMOTE_HELP = {
-    RemoteType.REMOTE_INDIA_OK: "Remote roles open to India, APAC or worldwide",
-    RemoteType.REMOTE_UNSPECIFIED: "Remote, but the posting doesn't say where from",
-    RemoteType.REMOTE_RESTRICTED: "Remote only from specific regions (US-only, EU-only…)",
-    RemoteType.HYBRID: "Some days in an office, in your cities below",
-    RemoteType.ONSITE: "Full-time in an office, in your cities below",
-    RemoteType.UNKNOWN: "Postings that don't state a work arrangement",
+DOMAIN_OPTIONS = (
+    (Domain.DATA, "Data",
+     "Data engineering, analytics engineering, data platforms, BI, analytics", "layers"),
+    (Domain.AI, "AI & ML",
+     "ML engineering, LLM and GenAI, MLOps, applied and research science", "sparkles"),
+    (Domain.CYBERSECURITY, "Cybersecurity",
+     "Security engineering, AppSec, cloud security, detection & response", "shield"),
+)  # fmt: skip
+DOMAIN_LABELS = {
+    "data": "Data",
+    "ai": "AI & ML",
+    "cybersecurity": "Cybersecurity",
+    "other": "Other",
 }
-REMOTE_ICONS = {
-    RemoteType.REMOTE_INDIA_OK: "globe",
-    RemoteType.REMOTE_UNSPECIFIED: "send",
-    RemoteType.REMOTE_RESTRICTED: "lock",
-    RemoteType.HYBRID: "hybrid",
-    RemoteType.ONSITE: "building",
-    RemoteType.UNKNOWN: "help",
-}
-SENIORITY_LABELS = {
-    Seniority.INTERN: "Intern",
-    Seniority.JUNIOR: "Junior",
-    Seniority.MID: "Mid",
-    Seniority.SENIOR: "Senior",
-    Seniority.STAFF_PLUS: "Staff / Principal",
-    Seniority.LEAD_MANAGER: "Lead / Manager",
-    Seniority.EXECUTIVE: "Director+",
-}
+SETUP_OPTIONS = (
+    (WorkSetup.REMOTE, "Remote", "globe"),
+    (WorkSetup.HYBRID, "Hybrid", "hybrid"),
+    (WorkSetup.ONSITE, "Onsite", "building"),
+)
+LANGUAGE_SUGGESTIONS = (
+    "English", "Hindi", "Kannada", "Tamil", "Telugu", "German", "French", "Spanish",
+    "Arabic", "Japanese", "Dutch", "Portuguese", "Mandarin",
+)  # fmt: skip
 SOURCE_LABELS = {
     "greenhouse": "Greenhouse",
     "lever": "Lever",
@@ -155,12 +159,16 @@ def _profile_data(form: Any) -> dict[str, Any]:
     return {
         "name": text("name"),
         "yoe": text("yoe") or 0,
+        "domains": form.getlist("domains"),
+        "seniorities": form.getlist("seniorities"),
+        "countries": _split(text("countries")),
+        "cities": _split(text("cities")),
+        "work_setups": form.getlist("work_setups"),
+        "languages": _split(text("languages")),
         "role_families": _split(text("role_families")),
         "skills_must": _split(text("skills_must")),
         "skills_nice": _split(text("skills_nice")),
-        "remote_types": form.getlist("remote_types"),
-        "cities": _split(text("cities")),
-        "seniorities": form.getlist("seniorities"),
+        "expectations": text("expectations").strip(),
         "exclude_title_patterns": _split(text("exclude_title_patterns")),
         "watchlist": [slug for v in form.getlist("watchlist") for slug in _split(str(v))],
         "min_salary_usd": text("min_salary_usd") or None,
@@ -184,6 +192,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         sparkline=sparkline,
         ago=ago,
         status_labels=STATUS_LABELS,
+        domain_labels=DOMAIN_LABELS,
+        country_names=COUNTRIES,
         source_label=lambda s: SOURCE_LABELS.get(s, s.title()),
         seniority_labels={s.value: label for s, label in SENIORITY_LABELS.items()},
         part_max=PART_MAX,
@@ -205,15 +215,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         profile = load_profile(settings.profile_path)
         if profile is None:
             return 0
+        fits = fit_lookup(engine, profile)
         key = (
             profile.version,
             get_state(conn, "last_sync_at"),
             queries.tracker_fingerprint(conn),
             current.date(),
+            len(fits),
         )
         if key not in queue_cache:
             queue_cache.clear()
-            cards = queries.dawn_cards(conn, profile, now=current, window=window, since=current)
+            cards = queries.dawn_cards(
+                conn, profile, now=current, window=window, since=current, fits=fits
+            )
             queue_cache[key] = sum(c.score.bucket is not Bucket.EXCLUDED for c in cards)
         return queue_cache[key]
 
@@ -255,7 +269,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         with engine.connect() as conn:
             previous = get_state(conn, "last_visit_at")
             since = datetime.fromisoformat(previous) if previous else None
-            cards = queries.dawn_cards(conn, profile, now=current, window=window, since=since)
+            cards = queries.dawn_cards(
+                conn, profile, now=current, window=window, since=since,
+                fits=fit_lookup(engine, profile),
+            )  # fmt: skip
             counts = queries.status_counts(conn)
             applied_week = queries.applied_since(conn, current - timedelta(days=7))
             activity = queries.recent_activity(conn)
@@ -284,6 +301,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         request: Request,
         *,
         bucket: str = "queue",
+        domain: str | None = None,
         remote: str | None = None,
         source: str | None = None,
         q: str | None = None,
@@ -306,6 +324,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                 remote=remote or None,
                 source=source or None,
                 query=q or None,
+                domain=domain or None,
+                fits=fit_lookup(engine, profile),
             )
         by_bucket = {b: [c for c in cards if c.score.bucket is b] for b in Bucket}
         if bucket in {b.value for b in Bucket}:
@@ -323,15 +343,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             total=len(visible),
             bucket=bucket,
             bucket_counts={b.value: len(v) for b, v in by_bucket.items()},
-            filters={"remote": remote or "", "source": source or "", "q": q or ""},
+            filters={
+                "remote": remote or "",
+                "source": source or "",
+                "q": q or "",
+                "domain": domain or "",
+            },
             remote_types=list(RemoteType),
+            domains=[d for d, *_ in DOMAIN_OPTIONS],
             window_days=settings.dawn_window_days,
+            ai_enabled=settings.anthropic_api_key is not None,
         )
 
     @app.get("/jobs/{job_id}/detail", response_class=HTMLResponse)
     def job_detail(request: Request, job_id: str) -> HTMLResponse:
         with engine.connect() as conn:
-            card = queries.job_detail(conn, job_id, profile_or_default())
+            profile_now = profile_or_default()
+            card = queries.job_detail(
+                conn, job_id, profile_now, fit_lookup(engine, profile_now), now()
+            )
         if card is None:
             return HTMLResponse("<div class='empty'>This job is gone.</div>", status_code=404)
         profile = load_profile(settings.profile_path)
@@ -354,13 +384,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     @app.get("/nest", response_class=HTMLResponse)
     def nest(request: Request) -> HTMLResponse:
         with engine.connect() as conn:
-            columns = queries.nest_cards(conn, profile_or_default())
+            profile = profile_or_default()
+            columns = queries.nest_cards(conn, profile, fit_lookup(engine, profile))
         return render(request, "nest.html", "nest", columns=columns)
 
     @app.get("/nest/{job_id}/drawer", response_class=HTMLResponse)
     def nest_drawer(request: Request, job_id: str) -> HTMLResponse:
         with engine.connect() as conn:
-            card = queries.job_detail(conn, job_id, profile_or_default())
+            profile = profile_or_default()
+            card = queries.job_detail(conn, job_id, profile, fit_lookup(engine, profile))
         if card is None:
             return HTMLResponse("<div class='empty'>This job is gone.</div>", status_code=404)
         return partial(
@@ -392,15 +424,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         remote: str = "",
         source: str = "",
         bucket: str = "",
+        domain: str = "",
         page: int = 1,
     ) -> HTMLResponse:
         with engine.connect() as conn:
+            profile = profile_or_default()
             cards = queries.explore_cards(
                 conn,
-                profile_or_default(),
+                profile,
                 query=q or None,
                 remote=remote or None,
                 source=source or None,
+                domain=domain or None,
+                fits=fit_lookup(engine, profile),
+                now=now(),
             )
         if bucket in {b.value for b in Bucket}:
             cards = [c for c in cards if c.score.bucket.value == bucket]
@@ -414,8 +451,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             total=len(cards),
             page=page,
             pages=max(1, -(-len(cards) // EXPLORE_PAGE)),
-            filters={"q": q, "remote": remote, "source": source, "bucket": bucket},
+            filters={
+                "q": q,
+                "remote": remote,
+                "source": source,
+                "bucket": bucket,
+                "domain": domain,
+            },
             remote_types=list(RemoteType),
+            domains=[d for d, *_ in DOMAIN_OPTIONS],
         )
 
     @app.get("/sources", response_class=HTMLResponse)
@@ -453,9 +497,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             errors=errors,
             saved=saved,
             welcome=welcome,
-            remote_options=[(r, REMOTE_HELP[r], REMOTE_ICONS[r]) for r in RemoteType],
+            domain_options=DOMAIN_OPTIONS,
+            setup_options=SETUP_OPTIONS,
             seniorities=list(SENIORITY_LABELS.items()),
             role_suggestions=list(ROLE_SUGGESTIONS),
+            country_suggestions=country_options(),
+            city_suggestions=city_options(),
+            language_suggestions=list(LANGUAGE_SUGGESTIONS),
             skill_suggestions=stack_catalog(),
             companies=directory,
         )
@@ -491,16 +539,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         current = now()
         with engine.connect() as conn:
             cards = queries.dawn_cards(
-                conn, profile, now=current, window=max(window, PREVIEW_WINDOW), since=current
-            )
+                conn, profile, now=current, window=max(window, PREVIEW_WINDOW), since=current,
+                fits=fit_lookup(engine, profile),
+            )  # fmt: skip
         counts = {b.value: sum(c.score.bucket is b for c in cards) for b in Bucket}
         counts["watchlist"] = sum(c.score.watchlist for c in cards)
+        reasons = Counter(
+            c.score.excluded_reason for c in cards if c.score.bucket is Bucket.EXCLUDED
+        ).most_common(5)
         return partial(
             request,
             "_preview.html",
             errors=[],
             counts=counts,
             total=len(cards),
+            reasons=reasons,
             top=[c for c in cards if c.score.bucket is not Bucket.EXCLUDED][:4],
             days=max(window, PREVIEW_WINDOW).days,
         )
@@ -519,6 +572,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             slugs.append(company_slug)
         save_profile(profile.model_copy(update={"watchlist": slugs}), settings.profile_path)
         return JSONResponse({"ok": True, "watching": watch, "count": len(slugs)})
+
+    @app.post("/score")
+    async def score_now() -> JSONResponse:
+        profile = load_profile(settings.profile_path)
+        if profile is None:
+            return JSONResponse({"ok": False, "error": "create a profile first"}, status_code=409)
+        result = await score_pending(engine, profile, settings, now())
+        return JSONResponse({"ok": True, **result})
 
     @app.post("/sync")
     async def sync_now() -> JSONResponse:

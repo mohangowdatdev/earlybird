@@ -15,8 +15,23 @@
     {% if saved %}<div class="banner ok">{{ ic.icon("check") }}<div class="grow"><b>Profile saved.</b> Dawn is already re-ranked with it.</div><a class="btn sm" href="/dawn">Open Dawn {{ ic.icon("arrow-right", "i sm") }}</a></div>{% endif %}
     {% if errors %}<div class="banner error">{{ ic.icon("alert") }}<div class="grow"><b>Please fix these:</b>{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div></div>{% endif %}
 
+    <section class="card psec" id="space">
+      <div class="psec-head"><span class="num">1</span><div><h3>Your space</h3><p>Earlybird covers three spaces only. Pick up to two; jobs outside them never reach your Dawn.</p></div></div>
+      <div class="options" data-max-checked="2">
+        {% for value, label, help, icon_name in domain_options %}
+        <label class="option">
+          <input type="checkbox" name="domains" value="{{ value.value }}" {{ 'checked' if value in profile.domains }}>
+          <span class="ic">{{ ic.icon(icon_name) }}</span>
+          <span><strong>{{ label }}</strong><span class="desc">{{ help }}</span></span>
+          <span class="check">{{ ic.icon("check") }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="hint" style="margin-top:10px">Pick none to see all three.</p>
+    </section>
+
     <section class="card psec" id="about">
-      <div class="psec-head"><span class="num">1</span><div><h3>About you</h3><p>Your experience sets the YOE window: from 1 year below to 2 years above.</p></div></div>
+      <div class="psec-head"><span class="num">2</span><div><h3>Experience</h3><p>Jobs asking for more than 2 years above, or capped more than 1 year below, are filtered out.</p></div></div>
       <div class="two">
         <div class="field"><label for="name">Name</label><input class="input" id="name" name="name" value="{{ profile.name }}" placeholder="What should we call you?" autocomplete="given-name"></div>
         <div class="field">
@@ -26,22 +41,58 @@
       </div>
     </section>
 
-    <section class="card psec" id="roles">
-      <div class="psec-head"><span class="num">2</span><div><h3>Roles you want</h3><p>Matched against job titles. The biggest factor in your score.</p></div></div>
-      <div class="field">
-        <label for="roles-input">Role families</label>
-        <div class="tags" data-tags data-quick="10" data-input-id="roles-input" data-placeholder="e.g. data engineer" data-suggest='{{ role_suggestions | tojson }}'>
-          <input type="hidden" name="role_families" value="{{ profile.role_families | join(', ') }}">
+    <section class="card psec" id="level">
+      <div class="psec-head"><span class="num">3</span><div><h3>Seniority</h3><p>The AI places every job on this scale. Pick the levels you want; none means any.</p></div></div>
+      <div class="toggles">
+        {% for value, label in seniorities %}
+        <label class="toggle"><input type="checkbox" name="seniorities" value="{{ value.value }}" {{ 'checked' if value in profile.seniorities }}><span class="tick">{{ ic.icon("check") }}</span>{{ label }}</label>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card psec" id="where">
+      <div class="psec-head"><span class="num">4</span><div><h3>Where and how you'll work</h3><p>Matched against where each job actually lets you work, read from the description, not just the location field.</p></div></div>
+      <div class="stack" style="gap:18px">
+        <div class="field">
+          <span class="label">Work setup</span>
+          <div class="toggles">
+            {% for value, label, icon_name in setup_options %}
+            <label class="toggle"><input type="checkbox" name="work_setups" value="{{ value.value }}" {{ 'checked' if value in profile.work_setups }}><span class="tick">{{ ic.icon("check") }}</span>{{ ic.icon(icon_name, "i sm") }} {{ label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="two">
+          <div class="field">
+            <label for="countries-input">Countries</label>
+            <span class="hint">Remote roles open to these countries, plus any office there.</span>
+            <div class="tags" data-tags data-free="false" data-input-id="countries-input" data-placeholder="Search countries…" data-suggest='{{ country_suggestions | tojson }}'>
+              <input type="hidden" name="countries" value="{{ profile.countries | join(', ') }}">
+            </div>
+          </div>
+          <div class="field">
+            <label for="cities-input">Cities</label>
+            <span class="hint">Offices you'd go to. A city also allows remote roles in its country.</span>
+            <div class="tags" data-tags data-input-id="cities-input" data-placeholder="Search cities…" data-suggest='{{ city_suggestions | tojson }}'>
+              <input type="hidden" name="cities" value="{{ profile.cities | join(', ') }}">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="lang-input">Languages you work in</label>
+          <span class="hint">Jobs that strictly require another language (e.g. Arabic-only roles in Dubai) are filtered out.</span>
+          <div class="tags" data-tags data-quick="6" data-input-id="lang-input" data-placeholder="Add a language" data-suggest='{{ language_suggestions | tojson }}'>
+            <input type="hidden" name="languages" value="{{ profile.languages | join(', ') }}">
+          </div>
         </div>
       </div>
     </section>
 
     <section class="card psec" id="skills">
-      <div class="psec-head"><span class="num">3</span><div><h3>Skills</h3><p>Matched against each job's extracted stack. Must-haves weigh most.</p></div></div>
+      <div class="psec-head"><span class="num">5</span><div><h3>Skills</h3><p>The AI fit score weighs these against each job's required and preferred skills.</p></div></div>
       <div class="stack" style="gap:18px">
         <div class="field">
           <label for="must-input">Must-have</label>
-          <div class="tags" data-tags data-input-id="must-input" data-placeholder="Search skills: python, spark, sql…" data-quick="12" data-suggest='{{ skill_suggestions | tojson }}'>
+          <div class="tags" data-tags data-quick="12" data-input-id="must-input" data-placeholder="Search skills: python, spark, sql…" data-suggest='{{ skill_suggestions | tojson }}'>
             <input type="hidden" name="skills_must" value="{{ profile.skills_must | join(', ') }}">
           </div>
         </div>
@@ -54,45 +105,32 @@
       </div>
     </section>
 
-    <section class="card psec" id="where">
-      <div class="psec-head"><span class="num">4</span><div><h3>Where you'll work</h3><p>Pick every arrangement you'd accept. Unpicked ones still show as "maybe" when facts are unclear. Nothing good gets silently dropped.</p></div></div>
-      <div class="options">
-        {% for value, help, icon_name in remote_options %}
-        <label class="option">
-          <input type="checkbox" name="remote_types" value="{{ value.value }}" {{ 'checked' if value in profile.remote_types }}>
-          <span class="ic">{{ ic.icon(icon_name) }}</span>
-          <span><strong>{{ remote_label(value.value) }}</strong><span class="desc">{{ help }}</span></span>
-          <span class="check">{{ ic.icon("check") }}</span>
-        </label>
-        {% endfor %}
-      </div>
-      <div class="field" style="margin-top:18px">
-        <label for="cities-input">Cities for hybrid and onsite roles</label>
-        <span class="hint">Leave empty if you only want remote roles. Add both spellings if needed (bangalore, bengaluru).</span>
-        <div class="tags" data-tags data-quick="6" data-input-id="cities-input" data-placeholder="Add a city" data-suggest='["bangalore", "bengaluru", "hyderabad", "pune", "chennai", "mumbai", "gurugram", "noida", "delhi"]'>
-          <input type="hidden" name="cities" value="{{ profile.cities | join(', ') }}">
+    <section class="card psec" id="wants">
+      <div class="psec-head"><span class="num">6</span><div><h3>What you're looking for</h3><p>In your own words. The AI reads this when scoring every job that passes your filters.</p></div></div>
+      <div class="stack" style="gap:18px">
+        <div class="field">
+          <label for="expectations">Expectations</label>
+          <textarea class="input" id="expectations" name="expectations" rows="4" maxlength="1500" placeholder="e.g. Senior data engineering on a modern lakehouse (Databricks/Snowflake), owning pipelines end to end. Interested in moving towards ML platform work. Prefer product companies over consulting; no on-call heavy roles.">{{ profile.expectations }}</textarea>
+        </div>
+        <div class="field">
+          <label for="roles-input">Titles you'd consider</label>
+          <span class="hint">Used when a job isn't AI-scored yet, and to decide which roles at dream companies count as relevant.</span>
+          <div class="tags" data-tags data-quick="10" data-input-id="roles-input" data-placeholder="e.g. data engineer" data-suggest='{{ role_suggestions | tojson }}'>
+            <input type="hidden" name="role_families" value="{{ profile.role_families | join(', ') }}">
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="card psec" id="level">
-      <div class="psec-head"><span class="num">5</span><div><h3>Seniority</h3><p>Preferred levels. Others are down-ranked, not hidden. Pick none to accept any level.</p></div></div>
-      <div class="toggles">
-        {% for value, label in seniorities %}
-        <label class="toggle"><input type="checkbox" name="seniorities" value="{{ value.value }}" {{ 'checked' if value in profile.seniorities }}><span class="tick">{{ ic.icon("check") }}</span>{{ label }}</label>
-        {% endfor %}
-      </div>
-    </section>
-
     <section class="card psec" id="filters">
-      <div class="psec-head"><span class="num">6</span><div><h3>Hard excludes</h3><p>A job whose title contains one of these is excluded (with the reason recorded). Keep these near-certain.</p></div></div>
-      <div class="tags" data-tags data-input-id="ex-input" data-placeholder="Add a title word or phrase" data-suggest='["intern", "internship", "new grad", "director", "vice president", "vp", "head of", "chief", "sales", "account executive", "recruiter", "talent acquisition", "legal counsel", "marketing"]'>
+      <div class="psec-head"><span class="num">7</span><div><h3>Hard excludes</h3><p>A job whose title contains one of these is excluded (with the reason recorded).</p></div></div>
+      <div class="tags" data-tags data-input-id="ex-input" data-placeholder="Add a title word or phrase" data-suggest='["intern", "internship", "new grad", "director", "vice president", "head of", "sales", "account executive", "recruiter", "talent acquisition", "legal counsel", "marketing"]'>
         <input type="hidden" name="exclude_title_patterns" value="{{ profile.exclude_title_patterns | join(', ') }}">
       </div>
     </section>
 
     <section class="card psec" id="perch">
-      <div class="psec-head"><span class="num">7</span><div><h3>Dream companies <span class="chip brand" style="vertical-align:2px">Perch</span></h3>
+      <div class="psec-head"><span class="num">8</span><div><h3>Dream companies <span class="chip brand" style="vertical-align:2px">Perch</span></h3>
         <p>Companies you'd drop everything for. Any role there that matches one of your roles or skills goes straight to the top of Dawn as <b>★ strong</b>, so you never miss it. Off-topic roles (sales, legal…) at those companies still stay out.</p></div></div>
       <div class="perch-tools">
         <div class="input-icon" style="flex:1">{{ ic.icon("search", "i sm") }}<input class="input sm" placeholder="Search {{ companies | length }} companies with open jobs…" data-perch-search></div>
@@ -112,7 +150,7 @@
     </section>
 
     <section class="card psec" id="alerts">
-      <div class="psec-head"><span class="num">8</span><div><h3>Salary and alerts</h3><p>Optional. Only salaries the posting states are compared; unstated is never a penalty.</p></div></div>
+      <div class="psec-head"><span class="num">9</span><div><h3>Salary and alerts</h3><p>Optional. Only salaries the posting states are compared; unstated is never a penalty.</p></div></div>
       <div class="two">
         <div class="field">
           <label for="salary">Minimum salary</label>
@@ -148,7 +186,7 @@
     </section>
     <nav class="card card-pad hide-sm" style="padding:14px" aria-label="Profile sections">
       <div class="stack" style="gap:2px;font-size:13px">
-        {% for anchor, label in [("about","About you"),("roles","Roles"),("skills","Skills"),("where","Where you'll work"),("level","Seniority"),("filters","Hard excludes"),("perch","Dream companies"),("alerts","Salary and alerts")] %}
+        {% for anchor, label in [("space","Your space"),("about","Experience"),("level","Seniority"),("where","Where and how"),("skills","Skills"),("wants","What you want"),("filters","Hard excludes"),("perch","Dream companies"),("alerts","Salary and alerts")] %}
         <a class="btn ghost sm" style="justify-content:flex-start" href="#{{ anchor }}">{{ label }}</a>
         {% endfor %}
       </div>

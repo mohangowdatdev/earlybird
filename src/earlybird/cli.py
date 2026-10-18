@@ -69,7 +69,7 @@ def ingest(
     ] = False,
 ) -> None:
     """Fetch sources and update the state. Default: the public plane (what Actions runs)."""
-    from earlybird.ingest import SourceStats, make_refiner, run  # noqa: PLC0415 - light startup
+    from earlybird.ingest import SourceStats, run  # noqa: PLC0415 - light startup
 
     settings = get_settings()
     url = _db_url(db)
@@ -90,7 +90,7 @@ def ingest(
             timeout=settings.http_timeout_seconds,
             concurrency=settings.http_concurrency,
             visibility=Visibility.PRIVATE if private else Visibility.PUBLIC,
-            refiner=await make_refiner(settings),
+            settings=settings,
         )
 
     stats = asyncio.run(_go())
@@ -145,6 +145,22 @@ def sync() -> None:
         )
     )
     typer.echo(f"synced; {new} new jobs")
+
+
+@app.command()
+def score() -> None:
+    """AI-score new jobs that pass your profile's filters (needs ANTHROPIC_API_KEY)."""
+    from earlybird.private.fit import score_pending  # noqa: PLC0415
+    from earlybird.private.profile import load_profile  # noqa: PLC0415
+
+    settings = get_settings()
+    profile = load_profile(settings.profile_path)
+    if profile is None:
+        typer.echo("no profile yet: build one in the portal first")
+        raise typer.Exit(1)
+    upgrade(settings.db_url)
+    result = asyncio.run(score_pending(make_engine(settings.db_url), profile, settings, _now()))
+    typer.echo(json.dumps(result))
 
 
 @app.command()

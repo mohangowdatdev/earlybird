@@ -43,6 +43,12 @@ Implemented in `earlybird.core.models`, `earlybird.enrich.models` and `earlybird
 | `extraction_method` | enum | `rules`, `llm`, `mixed` |
 | `visibility` | enum | `public` (ATS and boards) or `private` (email-derived). **Private never leaves the private plane.** |
 
+## AI enrichment columns (`jobs`, ADR 0017)
+
+`domain`, `subdomain`, `work_setup`, `eligible_countries` (ISO codes), `eligible_regions`, `office_cities` ([{city, country}]), `required_languages`, `visa_sponsorship`, `skills_required`, `skills_preferred`, `responsibilities` (≤ 5 short paraphrases), `ai_summary`, `ai_version`, `ai_content_hash`, `ai_model`, `enriched_at`. Seniority uses the 8-level scale: intern, junior, mid, senior, staff_principal, lead_manager, director, head_plus (plus unknown).
+
+Supporting tables: `ai_batches` (open Batch API jobs and the content hash each request was sent with), `ai_usage` (every call's tokens and cost, by month and kind: the budget ledger), and `scores` (private: AI fit per job and profile version, always empty in the public state).
+
 ## Public dataset (Release assets, [ADR 0009](decisions/0009-public-state-in-release-assets.md))
 
 | Asset | Contents | Consumer |

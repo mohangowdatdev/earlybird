@@ -5,6 +5,7 @@
 {% block subheading %}New in the last {{ window_days }} day{{ "s" if window_days != 1 }}{% endblock %}
 {% block content_class %}flush{% endblock %}
 {% block topbar_actions %}
+{% if ai_enabled %}<button class="btn sm hide-sm" data-score title="Score new, filtered jobs with AI">{{ ic.icon("sparkles", "i sm") }} Score with AI</button>{% endif %}
 <div class="progress-line hide-sm"><span id="progress-label">0 of {{ total }} cleared</span><span class="progress" id="progress"><i></i></span></div>
 {% endblock %}
 {% block content %}
@@ -17,7 +18,7 @@
 
 <div class="dawn-tools">
   <nav class="seg" aria-label="Buckets">
-    {% set qs = "&remote=" ~ filters.remote ~ "&source=" ~ filters.source ~ "&q=" ~ (filters.q | urlencode) %}
+    {% set qs = "&remote=" ~ filters.remote ~ "&source=" ~ filters.source ~ "&domain=" ~ filters.domain ~ "&q=" ~ (filters.q | urlencode) %}
     <a href="?bucket=queue{{ qs }}" class="{{ 'on' if bucket == 'queue' }}">Queue <span class="n">{{ bucket_counts.strong + bucket_counts.maybe }}</span></a>
     <a href="?bucket=strong{{ qs }}" class="{{ 'on' if bucket == 'strong' }}">Strong <span class="n">{{ bucket_counts.strong }}</span></a>
     <a href="?bucket=maybe{{ qs }}" class="{{ 'on' if bucket == 'maybe' }}">Maybe <span class="n">{{ bucket_counts.maybe }}</span></a>
@@ -26,6 +27,10 @@
   <form method="get" class="spacer" style="justify-content:flex-end">
     <input type="hidden" name="bucket" value="{{ bucket }}">
     <div class="input-icon" style="min-width:200px;flex:1;max-width:320px">{{ ic.icon("search", "i sm") }}<input class="input sm" name="q" placeholder="Filter title or company  ( / )" value="{{ filters.q }}" data-search></div>
+    <select class="select sm" name="domain" onchange="this.form.submit()" style="width:auto">
+      <option value="">All spaces</option>
+      {% for d in domains %}<option value="{{ d.value }}" {{ 'selected' if filters.domain == d.value }}>{{ domain_labels[d.value] }}</option>{% endfor %}
+    </select>
     <select class="select sm" name="remote" onchange="this.form.submit()" style="width:auto">
       <option value="">Any arrangement</option>
       {% for r in remote_types %}<option value="{{ r.value }}" {{ 'selected' if filters.remote == r.value }}>{{ remote_label(r.value) }}</option>{% endfor %}

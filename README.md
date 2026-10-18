@@ -6,7 +6,7 @@
 
 > **Status:** early and working. Public ingestion from 7 verified sources, the local Dawn/Nest portal and a profile builder run today; email alerts, Chirp and the public board come next. See the [roadmap](docs/roadmap.md).
 
-Earlybird watches public company career feeds (Greenhouse, Lever, Ashby and more) and open job boards. It deduplicates what it finds, pulls out the facts that matter (experience range, remote eligibility, stack) and ranks every new posting against **your** profile, so a 15-minute morning triage covers everything that opened since yesterday.
+Earlybird is built for **data, AI and cybersecurity roles**. It watches public company career feeds (Greenhouse, Lever, Ashby and more) and open job boards. A small AI model reads every posting into one schema: space, seniority, experience, work setup, where you may work from, languages and skills. Your profile filters on those facts, and the AI ranks the rest by fit and freshness, so a 15-minute morning triage covers everything that opened since yesterday.
 
 ## What it does
 
@@ -76,7 +76,7 @@ Earlybird only uses public APIs and feeds. It never scrapes behind a login or bo
 
 ## Cost
 
-**$0.** Earlybird runs on GitHub's free tier (public repo) and your laptop. The LLM layer is optional and off by default.
+**A few dollars a month.** Infrastructure is free (GitHub's free tier and your laptop). AI enrichment and fit scoring use Claude Haiku at roughly $0.0002–0.0004 per posting, with hard monthly caps in code. Without an API key, Earlybird runs on rules alone.
 
 ## Contributing
 

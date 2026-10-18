@@ -1,7 +1,7 @@
 """Database schema (SQLAlchemy Core). One schema for the public state and the local DB.
 
-Public-plane tables: jobs, adapter_runs, company_status.
-Private-plane tables (always empty in the public state): app_state, tracker.
+Public-plane tables: jobs, adapter_runs, company_status, ai_batches, ai_usage.
+Private-plane tables (always empty in the public state): app_state, tracker, scores.
 See docs/data-model.md.
 """
 
@@ -58,6 +58,23 @@ jobs = Table(
     Column("summary", String(300), nullable=False),
     Column("extraction_method", String(10), nullable=False),
     Column("extractor_version", Integer),
+    # AI enrichment (ADR 0017): generic, public-safe facts read from the description.
+    Column("domain", String(20)),
+    Column("subdomain", String(80)),
+    Column("work_setup", String(10)),
+    Column("eligible_countries", JSON),
+    Column("eligible_regions", JSON),
+    Column("office_cities", JSON),
+    Column("required_languages", JSON),
+    Column("visa_sponsorship", String(10)),
+    Column("skills_required", JSON),
+    Column("skills_preferred", JSON),
+    Column("responsibilities", JSON),
+    Column("ai_summary", String(300)),
+    Column("ai_version", Integer),
+    Column("ai_content_hash", String(16)),
+    Column("ai_model", String(40)),
+    Column("enriched_at", UTCDateTime),
     Column("visibility", String(10), nullable=False),
     Column("first_seen_at", UTCDateTime, nullable=False, index=True),
     Column("last_seen_at", UTCDateTime, nullable=False),
@@ -95,6 +112,36 @@ company_status = Table(
     Column("error", Text),
 )
 
+ai_batches = Table(
+    "ai_batches",
+    metadata,
+    Column("batch_id", String(80), primary_key=True),
+    Column("submitted_at", UTCDateTime, nullable=False),
+    Column("status", String(20), nullable=False),
+    Column("request_count", Integer, nullable=False),
+    # job_id -> content hash at submission; results apply only if the posting is unchanged
+    Column("job_hashes", JSON, nullable=False),
+    Column("estimated_cost_usd", Float, nullable=False),
+    Column("finished_at", UTCDateTime),
+)
+
+ai_usage = Table(
+    "ai_usage",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("month", String(7), nullable=False, index=True),
+    Column("kind", String(20), nullable=False),
+    Column("mode", String(10), nullable=False),
+    Column("model", String(40), nullable=False),
+    Column("requests", Integer, nullable=False),
+    Column("input_tokens", Integer, nullable=False),
+    Column("output_tokens", Integer, nullable=False),
+    Column("cache_read_tokens", Integer, nullable=False),
+    Column("cache_write_tokens", Integer, nullable=False),
+    Column("cost_usd", Float, nullable=False),
+    Column("recorded_at", UTCDateTime, nullable=False),
+)
+
 app_state = Table(
     "app_state",
     metadata,
@@ -110,4 +157,18 @@ tracker = Table(
     Column("reason", String(40)),
     Column("note", Text),
     Column("updated_at", UTCDateTime, nullable=False),
+)
+
+
+scores = Table(
+    "scores",
+    metadata,
+    Column("job_id", String(16), primary_key=True),
+    Column("profile_version", String(16), primary_key=True),
+    Column("fit", Integer, nullable=False),
+    Column("reason", String(400), nullable=False),
+    Column("matched", JSON, nullable=False),
+    Column("missing", JSON, nullable=False),
+    Column("model", String(40), nullable=False),
+    Column("scored_at", UTCDateTime, nullable=False),
 )

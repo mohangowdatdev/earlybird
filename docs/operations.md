@@ -68,7 +68,9 @@ Set with `gh secret set NAME`. Never commit them.
 
 | Secret | Used by | Required |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | Public-plane LLM fallback | No (off by default) |
+| `ANTHROPIC_API_KEY` | AI enrichment in the ingest workflow ([ADR 0017](decisions/0017-claude-haiku-enrichment-with-budget.md)) | Yes (without it: rules only) |
+
+**AI budget:** enrichment is capped at `EARLYBIRD_AI_MONTHLY_BUDGET_USD` (8 on Actions), and fit scoring at `EARLYBIRD_AI_FIT_MONTHLY_BUDGET_USD` (2 locally). Spend is recorded per call in `ai_usage`. Check it with `sqlite3 var/earlybird.db "select month, kind, round(sum(cost_usd),3) from ai_usage group by 1,2"`. Run `uv run earlybird score` to AI-score now, or use **Score with AI** in Dawn.
 
 The private plane's secrets live only in the local `.env`.
 

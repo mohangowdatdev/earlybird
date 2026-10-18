@@ -649,6 +649,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---------- profile ---------- */
+.option.disabled { opacity: 0.45; cursor: not-allowed; }
+.resp { margin: 0; padding-left: 18px; color: var(--text-2); display: grid; gap: 4px; }
 .suggest-group { position: sticky; top: -5px; z-index: 1; padding: 8px 10px 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--surface); }
 .suggest { max-height: 320px; }
 .perch-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }

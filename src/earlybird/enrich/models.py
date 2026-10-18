@@ -9,7 +9,7 @@ from earlybird.core.models import RemoteType, Seniority
 
 class ExtractionMethod(StrEnum):
     RULES = "rules"
-    LLM = "llm"
+    AI = "ai"
     MIXED = "mixed"
 
 

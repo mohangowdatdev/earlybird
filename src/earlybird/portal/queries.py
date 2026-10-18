@@ -29,14 +29,24 @@ class Card:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
-def _group(rows: list[dict[str, Any]], profile: Profile, since: datetime | None) -> list[Card]:
+Fits = dict[str, dict[str, Any]]
+
+
+def _group(
+    rows: list[dict[str, Any]],
+    profile: Profile,
+    since: datetime | None,
+    fits: Fits | None = None,
+    now: datetime | None = None,
+) -> list[Card]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         groups[row["canonical_key"]].append(row)
     cards = []
     for members in groups.values():
-        scored = [(score_job(m, profile), m) for m in members]
-        best_score, best = max(scored, key=lambda pair: pair[0].value)
+        scored = [(score_job(m, profile, (fits or {}).get(m["job_id"]), now), m) for m in members]
+        best_score, best = max(scored, key=lambda pair: (pair[0].bucket != Bucket.EXCLUDED,
+                                                          pair[0].rank))  # fmt: skip
         first_seen = min(m["first_seen_at"] for m in members)
         cards.append(
             Card(
@@ -54,13 +64,18 @@ def _group(rows: list[dict[str, Any]], profile: Profile, since: datetime | None)
 def _rank(card: Card) -> tuple[int, float, float]:
     return (
         _BUCKET_ORDER[card.score.bucket],
-        -card.score.value,
+        -card.score.rank,
         -card.job["first_seen_at"].timestamp(),
     )
 
 
 def _open_jobs(
-    *, remote: str | None, source: str | None, query: str | None, untriaged: bool
+    *,
+    remote: str | None,
+    source: str | None,
+    query: str | None,
+    untriaged: bool,
+    domain: str | None = None,
 ) -> Any:
     stmt = (
         select(jobs, tracker.c.status)
@@ -73,6 +88,8 @@ def _open_jobs(
         stmt = stmt.where(jobs.c.remote_type == remote)
     if source:
         stmt = stmt.where(jobs.c.source == source)
+    if domain:
+        stmt = stmt.where(jobs.c.domain == domain)
     if query:
         like = f"%{query.lower()}%"
         stmt = stmt.where(or_(jobs.c.title.ilike(like), jobs.c.company_name.ilike(like)))
@@ -89,12 +106,14 @@ def dawn_cards(
     remote: str | None = None,
     source: str | None = None,
     query: str | None = None,
+    domain: str | None = None,
+    fits: Fits | None = None,
 ) -> list[Card]:
-    stmt = _open_jobs(remote=remote, source=source, query=query, untriaged=True).where(
-        jobs.c.first_seen_at >= now - window
-    )
+    stmt = _open_jobs(
+        remote=remote, source=source, query=query, untriaged=True, domain=domain
+    ).where(jobs.c.first_seen_at >= now - window)
     rows = [dict(r) for r in conn.execute(stmt).mappings()]
-    return sorted(_group(rows, profile, since), key=_rank)
+    return sorted(_group(rows, profile, since, fits, now), key=_rank)
 
 
 def explore_cards(
@@ -104,18 +123,27 @@ def explore_cards(
     query: str | None,
     remote: str | None,
     source: str | None,
+    domain: str | None = None,
+    fits: Fits | None = None,
+    now: datetime | None = None,
     limit: int = 3000,
 ) -> list[Card]:
     stmt = (
-        _open_jobs(remote=remote, source=source, query=query, untriaged=False)
+        _open_jobs(remote=remote, source=source, query=query, untriaged=False, domain=domain)
         .order_by(jobs.c.first_seen_at.desc())
         .limit(limit)
     )
     rows = [dict(r) for r in conn.execute(stmt).mappings()]
-    return sorted(_group(rows, profile, None), key=_rank)
+    return sorted(_group(rows, profile, None, fits, now), key=_rank)
 
 
-def job_detail(conn: Connection, job_id: str, profile: Profile) -> Card | None:
+def job_detail(
+    conn: Connection,
+    job_id: str,
+    profile: Profile,
+    fits: Fits | None = None,
+    now: datetime | None = None,
+) -> Card | None:
     row = (
         conn.execute(
             select(jobs, tracker.c.status, tracker.c.note, tracker.c.reason)
@@ -138,7 +166,7 @@ def job_detail(conn: Connection, job_id: str, profile: Profile) -> Card | None:
     data = dict(row)
     return Card(
         job={**data, "first_seen_at": min(m["first_seen_at"] for m in members)},
-        score=score_job(data, profile),
+        score=score_job(data, profile, (fits or {}).get(job_id), now),
         job_ids=[m["job_id"] for m in members],
         sources=[(m["source"], m["url"]) for m in members],
         is_new=False,
@@ -147,7 +175,9 @@ def job_detail(conn: Connection, job_id: str, profile: Profile) -> Card | None:
     )
 
 
-def nest_cards(conn: Connection, profile: Profile) -> dict[str, list[Card]]:
+def nest_cards(
+    conn: Connection, profile: Profile, fits: Fits | None = None
+) -> dict[str, list[Card]]:
     stmt = (
         select(jobs, tracker.c.status, tracker.c.note, tracker.c.updated_at)
         .select_from(jobs.join(tracker, tracker.c.job_id == jobs.c.job_id))
@@ -164,7 +194,7 @@ def nest_cards(conn: Connection, profile: Profile) -> dict[str, list[Card]]:
         columns[data["status"]].append(
             Card(
                 job=data,
-                score=score_job(data, profile),
+                score=score_job(data, profile, (fits or {}).get(data["job_id"])),
                 job_ids=[data["job_id"]],
                 sources=[(data["source"], data["url"])],
                 is_new=False,

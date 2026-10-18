@@ -1,24 +1,29 @@
-"""Rule-based personal fit scoring (docs/matching.md). Fail-open: unknowns never push a job out.
+"""Personal scoring: hard filters first, then AI fit where available, rules otherwise.
 
-Score out of 10: role family 0-4, skills 0-3, experience 0-1.5, location 0-1.5,
-minus penalties for a seniority or salary mismatch. Dream companies (Perch): any job there that
-is even loosely relevant (a role or skill match) is promoted to strong; hard excludes still apply.
+Order (docs/matching.md): filters (scope, experience, seniority, location & setup, languages,
+title excludes) can exclude a job, with a reason. Jobs that pass are bucketed by their AI fit
+(0-100) when scored, else by the rule score (0-10). Dream companies (Perch): a relevant role there
+(role-family match, or partial match plus a must-have skill) is promoted to strong. Ranking blends
+fit with freshness so today's 90 beats last week's 85.
 """
 
 import re
 from collections.abc import Mapping
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from earlybird.core.models import RemoteType, Seniority
 from earlybird.enrich.rules import canonical_skill
+from earlybird.private.filtering import exclusion_reason
 from earlybird.private.profile import Profile
 
 STRONG_AT = 8.0
 ROLE_MATCH = 2.5  # every specific word of a role family is in the title
 MAYBE_AT = 5.0
+FIT_STRONG, FIT_MAYBE = 75, 50
+FRESHNESS_DECAY = 0.93  # per day since first seen
 YOE_TOLERANCE_BELOW = 1
 YOE_TOLERANCE_ABOVE = 2
 _GENERIC_TOKENS = frozenset({"engineer", "engineering", "developer", "specialist", "and", "of"})
@@ -36,13 +41,18 @@ PART_MAX = {"role": 4.0, "skills": 3.0, "experience": 1.5, "location": 1.5}
 
 
 class Score(BaseModel):
-    value: float
+    value: float  # 0-10 for display (AI fit / 10 when scored)
     bucket: Bucket
     reasons: list[str] = Field(default_factory=list)
     excluded_reason: str | None = None
     watchlist: bool = False
     parts: dict[str, float] = Field(default_factory=dict)
     skill_hits: list[str] = Field(default_factory=list)
+    fit: int | None = None
+    fit_reason: str | None = None
+    matched: list[str] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list)
+    rank: float = 0.0
 
 
 def _tokens(text: str) -> set[str]:
@@ -103,48 +113,31 @@ def _yoe_points(yoe_min: int | None, yoe_max: int | None, yoe: int) -> tuple[flo
     return (1.5 if fits else 0.0), True
 
 
-def _location_points(remote_type: RemoteType, locations: list[str], profile: Profile) -> float:
-    if remote_type in profile.remote_types:
-        return 1.5
-    if remote_type in (RemoteType.HYBRID, RemoteType.ONSITE):
-        places = " ".join(locations).lower()
-        return 1.5 if any(city in places for city in profile.cities) else 0.0
-    if remote_type in (RemoteType.UNKNOWN, RemoteType.REMOTE_UNSPECIFIED):
-        return 0.75  # fail open
-    return 0.0
+def _rank(base: float, first_seen: datetime | None, now: datetime | None) -> float:
+    if first_seen is None or now is None:
+        return base
+    days = max(0.0, (now - first_seen).total_seconds() / 86400)
+    return round(float(base * FRESHNESS_DECAY**days), 2)
 
 
-def _excluded_by_title(title: str, patterns: list[str]) -> str | None:
-    lowered = title.lower()
-    for pattern in patterns:
-        if re.search(rf"(?<![a-z0-9]){re.escape(pattern)}(?![a-z0-9])", lowered):
-            return f"title:{pattern}"
-    return None
-
-
-def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
+def score_job(
+    job: Mapping[str, Any],
+    profile: Profile,
+    fit: Mapping[str, Any] | None = None,
+    now: datetime | None = None,
+) -> Score:
     """Score one job row (a mapping with the `jobs` table's columns)."""
-    title: str = job["title"]
-    if reason := _excluded_by_title(title, profile.exclude_title_patterns):
+    if reason := exclusion_reason(job, profile):
         return Score(value=0.0, bucket=Bucket.EXCLUDED, excluded_reason=reason)
 
-    remote_type = RemoteType(job["remote_type"])
-    seniority = Seniority(job["seniority"])
+    title: str = job["title"]
     role, family = _role_points(title, profile.role_families)
     skills, skill_hits = _skill_points(job["stack"] or [], title, profile)
     yoe, yoe_known = _yoe_points(job["yoe_min"], job["yoe_max"], profile.yoe)
-    location = _location_points(remote_type, job["locations"] or [], profile)
-
+    location = 1.5  # it passed the location filter
     value = role + skills + yoe + location
     reasons = [f"role:{family}"] if family else []
     reasons += [f"skill:{s}" for s in skill_hits[:4]]
-    if (
-        profile.seniorities
-        and seniority is not Seniority.UNKNOWN
-        and seniority not in profile.seniorities
-    ):
-        value -= 2.0
-        reasons.append(f"level:{seniority.value}")
     salary_max = job.get("salary_max")
     if (
         profile.min_salary_usd
@@ -156,32 +149,47 @@ def score_job(job: Mapping[str, Any], profile: Profile) -> Score:
         reasons.append("salary:below_min")
     value = round(max(0.0, min(10.0, value)), 1)
     parts = {"role": role, "skills": skills, "experience": yoe, "location": location}
+    ai = {
+        "fit": fit["fit"],
+        "fit_reason": fit["reason"],
+        "matched": list(fit["matched"] or []),
+        "missing": list(fit["missing"] or []),
+    } if fit else {}  # fmt: skip
+    first_seen = job.get("first_seen_at")
+    base = float(fit["fit"]) if fit else value * 10
+
     must_hit = any(s in profile.skills_must for s in skill_hits)
     relevant = family is not None and (role >= ROLE_MATCH or (role > 0 and must_hit))
     if job["company_slug"] in profile.watchlist and relevant:
         return Score(
-            value=max(value, STRONG_AT),
-            bucket=Bucket.STRONG,
-            reasons=["watchlist", *reasons],
-            watchlist=True,
-            parts=parts,
-            skill_hits=skill_hits,
-        )
+            value=max(value, STRONG_AT), bucket=Bucket.STRONG, reasons=["watchlist", *reasons],
+            watchlist=True, parts=parts, skill_hits=skill_hits,
+            rank=_rank(max(base, 100.0), first_seen, now), **ai,
+        )  # fmt: skip
 
-    if value >= STRONG_AT:
-        bucket = Bucket.STRONG
-    elif value >= MAYBE_AT:
-        bucket = Bucket.MAYBE
-    elif role > 0 and (not yoe_known or remote_type is RemoteType.UNKNOWN):
-        bucket = Bucket.MAYBE  # unknown facts keep a plausible job alive
-        reasons.append("kept:unknowns")
+    if fit:
+        bucket = (
+            Bucket.STRONG
+            if fit["fit"] >= FIT_STRONG
+            else Bucket.MAYBE
+            if fit["fit"] >= FIT_MAYBE
+            else Bucket.EXCLUDED
+        )
+        excluded = "low AI fit" if bucket is Bucket.EXCLUDED else None
+        display = round(fit["fit"] / 10, 1)
     else:
-        bucket = Bucket.EXCLUDED
+        display = value
+        if value >= STRONG_AT:
+            bucket = Bucket.STRONG
+        elif value >= MAYBE_AT:
+            bucket = Bucket.MAYBE
+        elif role > 0 and not yoe_known:
+            bucket = Bucket.MAYBE  # unknown facts keep a plausible job alive
+            reasons.append("kept:unknowns")
+        else:
+            bucket = Bucket.EXCLUDED
+        excluded = "low match" if bucket is Bucket.EXCLUDED else None
     return Score(
-        value=value,
-        bucket=bucket,
-        reasons=reasons,
-        excluded_reason="low_score" if bucket is Bucket.EXCLUDED else None,
-        parts=parts,
-        skill_hits=skill_hits,
-    )
+        value=display, bucket=bucket, reasons=reasons, excluded_reason=excluded,
+        parts=parts, skill_hits=skill_hits, rank=_rank(base, first_seen, now), **ai,
+    )  # fmt: skip

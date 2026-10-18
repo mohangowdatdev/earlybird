@@ -1,4 +1,5 @@
-"""Background loop run by `make up`: sync the public dataset, then fetch private-only boards."""
+"""Background loop run by `make up`: sync the public dataset, fetch private-only boards, then
+AI-score new jobs that pass your filters."""
 
 import asyncio
 from datetime import UTC, datetime
@@ -9,8 +10,9 @@ from earlybird.core.config import Settings
 from earlybird.core.errors import EarlybirdError
 from earlybird.core.models import Visibility
 from earlybird.db.engine import make_engine, upgrade
-from earlybird.ingest import make_refiner
 from earlybird.ingest import run as ingest
+from earlybird.private.fit import score_pending
+from earlybird.private.profile import load_profile
 from earlybird.private.sync import sync
 
 log = structlog.get_logger()
@@ -39,6 +41,9 @@ async def run_forever(settings: Settings) -> None:
             timeout=settings.http_timeout_seconds,
             concurrency=4,
             visibility=Visibility.PRIVATE,
-            refiner=await make_refiner(settings),
+            settings=settings,
         )
+        profile = load_profile(settings.profile_path)
+        if profile is not None:
+            await score_pending(engine, profile, settings, datetime.now(UTC))
         await asyncio.sleep(settings.sync_interval_minutes * 60)

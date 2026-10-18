@@ -2,12 +2,18 @@
 {% if errors %}
 <div class="banner error">{{ ic.icon("alert") }}<div class="grow">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div></div>
 {% else %}
-<p class="muted" style="font-size:12.5px">Scoring the {{ "{:,}".format(total) }} untriaged jobs from the last {{ days }} days:</p>
+<p class="muted" style="font-size:12.5px">Your filters applied to the {{ "{:,}".format(total) }} untriaged jobs from the last {{ days }} days:</p>
 <div class="preview-counts">
   <div class="strong"><b>{{ counts.strong }}</b><span>Strong</span></div>
   <div class="maybe"><b>{{ counts.maybe }}</b><span>Maybe</span></div>
   <div class="excluded"><b>{{ counts.excluded }}</b><span>Excluded</span></div>
 </div>
+{% if reasons %}
+<div class="section-title" style="margin-top:4px">Why jobs are filtered out</div>
+<div class="stack" style="gap:6px;margin-bottom:14px">
+  {% for reason, n in reasons %}<div class="row" style="font-size:12.5px"><span class="muted grow" style="flex:1">{{ reason }}</span><b>{{ n }}</b></div>{% endfor %}
+</div>
+{% endif %}
 {% if counts.watchlist %}<p class="chip brand" style="margin-bottom:12px">{{ ic.icon("star") }} {{ counts.watchlist }} relevant role{{ "s" if counts.watchlist != 1 }} at your dream companies</p>{% endif %}
 {% if top %}
 <div class="preview-top">

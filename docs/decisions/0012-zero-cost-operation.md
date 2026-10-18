@@ -1,6 +1,6 @@
 # 0012. Zero-cost operation
 
-- Status: Accepted
+- Status: Superseded by [0017](0017-claude-haiku-enrichment-with-budget.md) (a $20 budget for Claude Haiku). Free infrastructure choices still hold.
 - Date: 2026-10-18
 
 ## Context

@@ -92,6 +92,37 @@
     }
   });
 
+  /* ---------- AI scoring ---------- */
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-score]");
+    if (!btn) return;
+    btn.classList.add("loading");
+    toast("Scoring filtered jobs with AI… this can take a minute.");
+    try {
+      const res = await fetch("/score", { method: "POST" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "scoring failed");
+      toast(data.scored ? `Scored ${data.scored} jobs · $${data.cost_usd}` : `Nothing new to score (${data.reason})`);
+      if (data.scored) setTimeout(() => location.reload(), 900);
+    } catch (err) {
+      toast(`Scoring failed: ${err.message}`, { error: true });
+    } finally {
+      btn.classList.remove("loading");
+    }
+  });
+
+  /* ---------- "pick at most N" option groups ---------- */
+  $$("[data-max-checked]").forEach((group) => {
+    const max = Number(group.dataset.maxChecked);
+    const boxes = $$("input[type=checkbox]", group);
+    const sync = () => {
+      const full = boxes.filter((b) => b.checked).length >= max;
+      boxes.forEach((b) => { b.disabled = full && !b.checked; b.closest(".option").classList.toggle("disabled", b.disabled); });
+    };
+    boxes.forEach((b) => b.addEventListener("change", sync));
+    sync();
+  });
+
   /* ---------- tag inputs ---------- */
   const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const initTags = (root) => {

@@ -26,15 +26,24 @@ Flow: **Overview → Dawn (clear the queue) → Nest (shortlist 3–5, apply pro
 
 ## Profile builder (`/profile`)
 
-The first visit goes straight here. It's eight numbered sections with a **live preview** (strong/maybe/excluded counts and the top matches, recomputed as you edit) and a sticky save bar (`⌘S`). It writes `profile.yaml`:
-- name and years of experience
-- role families and must-have / nice-to-have skills (suggestions come from the stack dictionary)
-- accepted work arrangements and cities for hybrid/onsite
-- preferred seniority and title excludes
-- the Perch watchlist (suggested from the registry)
-- an optional minimum salary and the Chirp cap
+The first visit goes straight here. The sections follow the filter order:
+1. **Your space:** pick up to 2 of Data, AI & ML, Cybersecurity.
+2. **Experience:** a slider.
+3. **Seniority:** the 8-level scale.
+4. **Where and how:** work setup toggles, a country picker, and a city picker grouped by country. A city also allows remote roles in its country. Plus the languages you work in.
+5. **Skills:** must-have and nice-to-have.
+6. **What you're looking for:** free text the AI reads when scoring, plus the titles you'd consider.
 
-Saving changes the profile version, and Dawn re-scores immediately because scoring runs at read time.
+Then hard excludes, dream companies, salary and alerts.
+
+The **live preview** shows strong/maybe/excluded counts, *why* jobs are filtered out (top reasons), and the top of your Dawn. A sticky save bar is available (`⌘S`). Saving changes the profile version, so filters apply instantly and new AI fit scores are computed on the next scoring run.
+
+Job detail shows the AI's reading:
+- space and subdomain, work setup, level, years
+- where you may work from, and offices
+- required languages, visa sponsorship
+- "What you'd do", and the skills asked for
+- **AI fit** with its reason, matched skills (green) and missing skills (amber)
 
 ## Dawn: the morning queue
 

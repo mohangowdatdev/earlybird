@@ -1,6 +1,6 @@
 # 0016. Small local model for description extraction (Ollama, Qwen2.5 3B)
 
-- Status: Accepted
+- Status: Superseded by [0017](0017-claude-haiku-enrichment-with-budget.md). On GitHub's CPU runners qwen2.5:3b refined 57 jobs in 25 minutes (~26 s/job), changing 1.
 - Date: 2026-10-19
 - Refines: [0007](0007-llm-provider.md), [0012](0012-zero-cost-operation.md)
 

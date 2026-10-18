@@ -5,6 +5,12 @@ All notable changes are recorded here. Format: [Keep a Changelog](https://keepac
 ## [Unreleased]
 
 ### Added
+- AI pipeline (ADR 0017): Claude Haiku enrichment of every posting into one schema (space, seniority, experience, setup, eligibility, offices, languages, visa, skills, responsibilities); Batch API for bulk; budget ledger with hard monthly caps; title prefilter.
+- Scope narrowed to data / AI / cybersecurity (ADR 0018); hard filters in a fixed order; AI fit scoring (0–100) of filtered jobs; ranking by fit × freshness.
+- Profile: 8-level seniority, countries and city picker, work setups, languages, expectations; detail view shows the AI's reading and fit reasoning.
+
+### Removed
+- Ollama/Qwen refinement (ADR 0016, superseded).
 - Skills taxonomy (182 skills, 18 categories) with grouped suggestions and alias-aware matching; existing jobs re-tagged via `EXTRACTOR_VERSION`.
 - Description-aware eligibility and location rules, plus small-model refinement (Ollama, qwen2.5:3b) with grounding checks, a time budget and a cached queue.
 - Dream companies (Perch): searchable company grid, ☆ Watch on every job, relevance-gated promotion.

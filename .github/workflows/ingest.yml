@@ -15,11 +15,9 @@ concurrency:
 env:
   TAG: data-latest
   GH_TOKEN: ${{ github.token }}
-  # Small-model extraction (ADR 0016). Optional: if it fails, ingest uses rules only.
-  OLLAMA_VERSION: v0.40.6
-  EARLYBIRD_LLM_PROVIDER: ollama
-  EARLYBIRD_LLM_MODEL: qwen2.5:3b
-  EARLYBIRD_LLM_TIME_BUDGET_SECONDS: "1500"
+  # AI enrichment with Claude Haiku (ADR 0017). Budget is a hard monthly cap in USD.
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  EARLYBIRD_AI_MONTHLY_BUDGET_USD: "8"
   EARLYBIRD_LOG_FORMAT: json
 
 jobs:
@@ -43,37 +41,8 @@ jobs:
             echo "No previous state; starting fresh."
           fi
 
-      - name: Restore model weights
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.ollama/models
-          key: ollama-${{ env.EARLYBIRD_LLM_MODEL }}
-
-      - name: Restore model work queue
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: var/llm_queue.db
-          key: llm-queue-${{ github.run_id }}
-          restore-keys: llm-queue-
-
-      - name: Start Ollama
-        continue-on-error: true
-        run: |
-          curl -fsSL "https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/ollama-linux-amd64.tar.zst" \
-            | sudo tar --zstd -x -C /usr/local
-          (ollama serve > /tmp/ollama.log 2>&1 &)
-          for _ in $(seq 1 30); do curl -sf localhost:11434/api/tags >/dev/null && break; sleep 1; done
-          ollama pull "$EARLYBIRD_LLM_MODEL"
-
       - name: Ingest
         run: uv run earlybird ingest --db var/state.db 2> >(tee "$RUNNER_TEMP/ingest.log" >&2)
-
-      - name: Save model work queue
-        if: always()
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: var/llm_queue.db
-          key: llm-queue-${{ github.run_id }}
 
       - name: Build dataset
         run: uv run earlybird publish --db var/state.db --out dist
@@ -89,8 +58,6 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Model refinement"
-            grep -h '"llm\.' "$RUNNER_TEMP"/ingest.log 2>/dev/null || echo "no model stats"
             echo "## Source health"
             echo '```json'
             cat dist/health.json 2>/dev/null || echo "no health.json"

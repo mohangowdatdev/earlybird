@@ -53,7 +53,8 @@
 {%- endmacro -%}
 {%- macro score(card) -%}
 {%- if card.score.watchlist -%}<div class="score star" title="Dream company (Perch): relevant role">{{ icon("star") }}</div>
-{%- else -%}<div class="score {{ card.score.bucket.value }}" title="{{ card.score.bucket.value }} match">{{ "%.1f" | format(card.score.value) if card.score.value < 10 else "10" }}</div>{%- endif -%}
+{%- elif card.score.fit is not none -%}<div class="score {{ card.score.bucket.value }}" title="AI fit {{ card.score.fit }}/100">{{ card.score.fit }}</div>
+{%- else -%}<div class="score {{ card.score.bucket.value }}" title="Rule estimate (not AI-scored yet)">{{ "%.1f" | format(card.score.value) if card.score.value < 10 else "10" }}</div>{%- endif -%}
 {%- endmacro -%}
 {%- macro logo(name, cls="logo") -%}<div class="{{ cls }}" aria-hidden="true">{{ (name or "?")[:1] | upper }}</div>{%- endmacro -%}
 {%- macro remote_chip(value) -%}
